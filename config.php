@@ -1,10 +1,27 @@
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
-<html xmlns="http://www.w3.org/1999/xhtml">
-<head>
-<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-<title>Untitled Document</title>
-</head>
+<?
+// Settings for yShort
 
-<body>
-</body>
-</html>
+$version = '0.1';
+$time = date('Y-m-d h:i:s A', time());
+
+$source = array(
+	'source/core.js',
+//	'source/sly.js',
+//	'source/sizzle.js',
+	'source/manipulate.js',
+	'source/traverse.js',
+	'source/attribute.js',
+	'source/ajax.js',
+	'source/event.js',
+	'source/css.js',
+);
+$jQuery = true;
+$jQuery = false;
+
+$tests = true;
+$tests = false;
+
+$output_file = 'short.js';
+$output_min = 'short.min.js';
+
+?>

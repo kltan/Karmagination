@@ -1,10 +1,11 @@
 /*!
- * $hort 0.1 
+ * $hort <?=$version."\n"?>
+ * http://github.com/kltan/short/tree/master
  * JS library development simplified 
- * Tri-licensed under the MIT, BSD and GPL
+ * Released under the MIT, BSD, and GPL Licenses.
  * Copyright 2009 Kean L. Tan 
  * Start date: 2009-04-01
- * Last build: 2009-04-01 03:19:28 PM 
+ * Last build: <?=$time."\n"?>
  */
 
 (function(){ //start anon
@@ -21,28 +22,35 @@ var _$ = this.$,
 		  
 var $ = window.$ = this.$hort = function( query, context ) {
 	// Constructor
-	return new $.fn.init( query, context );
+	return new $.prototype.init( query, context );
 };
 
-$.fn = $.prototype = {
+$.prototype = {
 	init: function(query, context) {
 		query = query || document;
 		context = context || document;
 		
+		// the stack to track callee $hort objects
+		this.$hortStack = [];
+		
 		var result = [];
 		
-		if (query.nodeType) {
-			result[0] = query;
+		if (query.nodeType || query === window) {
+			this[0] = query;
+			this.length = 1;
 			this.query = query;
+			return;
 		}
 		
+		// string is most used query
 		else if(typeof query === "string" && query.length > 0) {
-			// if HTML
+			// if HTML, least used so we just accept it
 			if (/^<(.|\s)+>$/.test(query)) {
-				var x = document.createElement('DIV');
-				x.innerHTML = query;
-				for (var i =0; i < x.childNodes.length; i++)
-					result[i] = x.childNodes[i];
+				var tmp = document.createElement('DIV');
+				tmp.innerHTML = $hort.cleanHTML(query);
+				
+				for (var i =0; i < tmp.childNodes.length; i++)
+					result[i] = tmp.childNodes[i];
 			}
 			else {
 				// if CSS query
@@ -59,27 +67,57 @@ $.fn = $.prototype = {
 		}
 
 		// if array, object or $hort object
-		else { result = query; }
+		else { 
+			result = query; 
+			if(query.query)
+				this.query = query.query;
+		}
 		
-		// try to populate the elements into $hort
-		try { this.populate(result); } 
+		// try to populate the elements into $hort, for the fastest performance
+		// in init we do not want to call to other functions if possible, 
+		// code reuse is just giving shitty performance
+		try { 
+			this.length = 0;
+			if($toString.call(result) != "[object Array]")
+				result = $slice.call(result);
+			if (result.length)
+				$push.apply(this, result);
+		} 
 		catch(e) { $.error([e]); }
-	},
-	
-	// populate, wipe, stack and end is meant for plugin use
+	}
+}
+
+$.fn = $.prototype.init.prototype;
+
+// define extend (o,o2,o3,o4,o5 .......)
+// make stiching prototypes easy
+$.extend = function(o) {
+	for ( var i = 0; i < arguments.length; i++ ) 
+		for ( var key in arguments[i] ) 
+			o[key] = arguments[i][key]; 
+	return o;
+};
+
+$.extend($.fn, {
+
+	// populate, wipe, stack and end
 	// extremely fast and sanitizes results (makes clean array) for basic element population and wipe
 	
 	// populate nodes into $hort
-	populate: function(elements) {
+	populate: function(elements ,n) {
+		n = n || 0;
 		// make a clean array
+		this.length = n;
 		elements = $slice.call(elements);
+
 		// exit if no elements found
 		if (!elements.length) return;
 		// push elements into $hort
 		$push.apply(this, elements);
+		return this;
 	},
 	
-	// empty all elements store in $hort, starting from index n
+	// empty all elements store in $hort, starting from index n,
 	wipe: function(n){
 		n = n || 0;
 		
@@ -92,8 +130,14 @@ $.fn = $.prototype = {
 	},
 	
 	// stacking $hort for chainability
-	stack: function(object){
-		this.$hortStack.push(object);
+	stack: function(o){
+		this.query = o.query;
+		this.$hortStack.push(o);
+		return this;
+	},
+	
+	andSelf: function() {
+		return this.$hortStack.length ? $hort(this).populate(this.$hortStack[0], this.length).stack(this): $hort(this).stack(this);
 	},
 	
 	// getting into the previous chain
@@ -101,39 +145,19 @@ $.fn = $.prototype = {
 		return this.$hortStack[0];
 	},
 	
-	// the stack to track callee $hort objects
-	$hortStack: [],
-	
-	// cache DOM operations
-	// should follow this convetion queryStack[query] = arrayOfElement(s)
-	queryStack:{}, 
-
 	// how many elements in $hort
 	length: 0,
 	
-	// the query that was passed into this instance of $hort
+	// the query that was passed into the first unchained instance of $hort
 	query: null,
 	
 	// $hort version
-	$hort: 0.1
-}
+	$hort: <?=$version?>
+});
 
-// hook up the methods to init
-for(var prop in $.fn) {
-	if (prop != 'init')
-		$.fn.init.prototype[prop] = $.fn[prop];
-}
-
-// define extend (o,o2,o3,o4,o5 .......)
-$.extend = function(o) {
-	for ( var i = 0; i < arguments.length; i++ ) 
-		for ( var key in arguments[i] ) 
-			o[key] = arguments[i][key]; 
-	return o;
-};
 
 $.extend($, {
-	// type detection
+	// Miller type detection
 	isArray: function(o){ return $toString.call(o) === "[object Array]" },
 	isObject: function(o){ return $toString.call(o) === "[object Object]" },
 	isDate: function(o){ return $toString.call(o) === "[object Date]" },
@@ -149,7 +173,7 @@ $.extend($, {
 	isOpera: !!window.opera,
 	isWebkit: !!(!window.opera && !navigator.taintEnable && document.evaluate && document.getBoxObjectFor === undefined),
 	
-	cleanHTML: function(HTML){ return HTML.replace(/[\n\r\t]/g, '').replace( /^\s+|\s+$/g, ''); },
+	cleanHTML: function(HTML){ return HTML.replace(/^\s+|[\n\r\t]|\s+$/g, ''); },
 	
 	// playing nice with otherss out there
 	noConflict: function(extreme){
@@ -161,13 +185,38 @@ $.extend($, {
 		return $;
 	},
 	
-	// throw error if no negative effects to end users
+	// throw error if they can be understood
 	error: function(e) {
-		if(window.console && window.console.log) {
-			for(var i=0; i< e.length; i++)
-				window.console.log(e[i]);
-		}
+		if(window.console && window.console.log)
+			console.log(e);
 	},
+	
+	// returns a unique set of array
+	unique: function(a) {
+		var r = [];
+		o:for(var i = 0, n = a.length; i < n; i++) {
+			for(var x = i + 1 ; x < n; x++) {
+				if(a[x]===a[i]) continue o; // prevent window == document for DOM comparison
+			}
+			r[r.length] = a[i];
+		}
+		return r;
+	},
+	
+	selector: function(qry) {
+		qry = qry.split('#');
+		
+		if(qry.length == 2)
+			return [document.getElementById(qry[1])];
+		
+		else
+			return document.getElementsByTagName(qry[0]);
+	},
+	
+	hasSelector: function(){
+		return !!$hort.selector.filter;
+	},
+		 
 	
 	// method to namespace function
 	namespace: function(name, root) {
@@ -191,13 +240,32 @@ $.extend($, {
 		return false;
 	},
 	
+	// rgb(255, 0, 0) -> #FF0000
+	rgbToHex: function(array){
+		if (array.length < 3) return null;
+		if (array.length == 4 && array[3] == 0 && !array) return 'transparent';
+		var hex = [];
+		for (var i = 0; i < 3; i++){
+			var bit = (array[i] - 0).toString(16);
+			hex.push((bit.length == 1) ? '0' + bit : bit);
+		}
+		return '#' + hex.join('');
+	},
+	
+	// z-index -> zIndex
+	camelCase: function(property){
+		return property.replace(/\-(\w)/g, function(all, letter){ return letter.toUpperCase();	});
+	},
+	
 	fns: [], // functions to fire onDOMready
 	done: false, // onDOMready functions fired yet?
+	
 	// add functions to $hort.fns
 	ready_queue: function(fn){
 		if($.isFunction(fn))
 			$.fns.push(fn);
 	},
+	
 	// reliable onDOMready code
 	ready: function(){
 		var init = function() {
@@ -228,20 +296,12 @@ $.extend($, {
 		}
 		else if (/loaded|complete/.test(document.readyState)) return init();
 		
+		// 100 ms is good enough
 		if (!$.done) setTimeout(arguments.callee, 100);
-		
-		var _prevOnload = window.onload;
-		window.onload = function() {
-			if(!$.done)
-				init();
-				
-			if ($.isFunction(_prevOnload))
-				_prevOnload();
-		};
 	}
 });
 
-// listen to ready events
+// listen to onDOMready events
 $.ready();
 
 })();// end anon

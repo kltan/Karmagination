@@ -1,4 +1,8 @@
-/*! Sly v1.0rc1 <http://sly.digitarald.com> - (C) 2009 Harald Kirschner <http://digitarald.de> - Open source under MIT License */
+/*!
+ * Sly v1.0rc1 <http://sly.digitarald.com> 
+ * (C) 2009 Harald Kirschner <http://digitarald.de>
+ * Open source under MIT License 
+*/
 
 var Sly = (function() {
 
@@ -806,7 +810,11 @@ Sly.recompile();
 
 return Sly;
 
+Sly.verbose = false;
+
 })();
 
-Sly.verbose = false;
+$hort.selector = Sly.search;
+$hort.filter = Sly.filter;
+
 

@@ -2,13 +2,13 @@
  * $hort <?=$version."\n"?>
  * http://github.com/kltan/short/tree/master
  * JS library development simplified 
- * Released under the MIT, BSD, and GPL Licenses.
+ * Released under the MIT, BSD, and GPL Licenses
  * Copyright 2009 Kean L. Tan 
  * Start date: 2009-04-01
  * Last build: <?=$time."\n"?>
  */
 
-(function(){ //start anon
+;(function(){ //start anon
 
 var window = this,
 	document = this.document,
@@ -20,7 +20,7 @@ var window = this,
 var _$ = this.$,
 	_$hort = this.$hort;
 		  
-var $ = window.$ = this.$hort = function( query, context ) {
+var $ = this.$ = this.$hort = function( query, context ) {
 	// Constructor
 	return new $.prototype.init( query, context );
 };
@@ -46,11 +46,37 @@ $.prototype = {
 		else if(typeof query === "string" && query.length > 0) {
 			// if HTML, least used so we just accept it
 			if (/^<(.|\s)+>$/.test(query)) {
-				var tmp = document.createElement('DIV');
-				tmp.innerHTML = $hort.cleanHTML(query);
+				var tmp;
+				
+				query = $hort.cleanHTML(query);
+				
+				if(/^<(tr)+/i.test(query)) {
+					query = '<table>' + query + '</table>';
+					tmp = document.createElement('DIV');
+					tmp.innerHTML=query;
+					
+					tmp = tmp.firstChild;
+					
+				}
+				// td or th
+				else if(/^<(td|th)+/i.test(query)) {
+					query = '<table><tr>' + query + '</tr></table>';
+					tmp = document.createElement('DIV');
+					tmp.innerHTML=query;
+
+					tmp = tmp.firstChild.firstChild.firstChild;
+					
+				}
+				
+				else if(!tmp){
+					tmp = document.createElement('DIV');
+					tmp.innerHTML = query;
+				}
 				
 				for (var i =0; i < tmp.childNodes.length; i++)
 					result[i] = tmp.childNodes[i];
+				
+				this.query = query;
 			}
 			else {
 				// if CSS query
@@ -61,9 +87,15 @@ $.prototype = {
 		
 		// onDOMready
 		else if (typeof query === "function") {
-			$.ready_queue(function(){
-				query.call(window, $);
-			});
+			this[0] = document;
+			if(!$hort.done)
+				$.ready_queue(function(){
+					query.call(document, $);
+				});
+			else
+				query.call(document, $);
+				
+			return;
 		}
 
 		// if array, object or $hort object
@@ -77,11 +109,7 @@ $.prototype = {
 		// in init we do not want to call to other functions if possible, 
 		// code reuse is just giving shitty performance
 		try { 
-			this.length = 0;
-			if($toString.call(result) != "[object Array]")
-				result = $slice.call(result);
-			if (result.length)
-				$push.apply(this, result);
+			this.populate(result);
 		} 
 		catch(e) { $.error([e]); }
 	}
@@ -92,26 +120,27 @@ $.fn = $.prototype.init.prototype;
 // define extend (o,o2,o3,o4,o5 .......)
 // make stiching prototypes easy
 $.extend = function(o) {
-	for ( var i = 0; i < arguments.length; i++ ) 
+	if (!(typeof arguments[0] === 'object' || typeof o === 'function')) return;
+	
+	for ( var i = 1; i < arguments.length; i++ ) 
 		for ( var key in arguments[i] ) 
-			o[key] = arguments[i][key]; 
-	return o;
+			arguments[0][key] = arguments[i][key]; 
+	return arguments[0];
 };
 
 $.extend($.fn, {
 
-	// populate, wipe, stack and end
-	// extremely fast and sanitizes results (makes clean array) for basic element population and wipe
-	
 	// populate nodes into $hort
 	populate: function(elements ,n) {
 		n = n || 0;
 		// make a clean array
 		this.length = n;
-		elements = $slice.call(elements);
+		if(!$hort.isArray(elements))
+			elements = $hort.makeArray(elements);
 
 		// exit if no elements found
-		if (!elements.length) return;
+		if (!elements.length) return this;
+		
 		// push elements into $hort
 		$push.apply(this, elements);
 		return this;
@@ -136,6 +165,7 @@ $.extend($.fn, {
 		return this;
 	},
 	
+	// adding self to chain
 	andSelf: function() {
 		return this.$hortStack.length ? $hort(this).populate(this.$hortStack[0], this.length).stack(this): $hort(this).stack(this);
 	},
@@ -153,11 +183,31 @@ $.extend($.fn, {
 	
 	// $hort version
 	$hort: <?=$version?>
+	
 });
 
 
 $.extend($, {
-	// Miller type detection
+	
+	createElement: function(elName, elAttr, html, i, scope) {
+		if(!$hort.isNumber(i) || i===0) i = 1;
+		scope = scope || window;
+				
+		var ret = [],
+			el = scope.document.createElement(elName.toUpperCase());
+			
+		for(var j=0; j<i; j++) {
+			ret.push(el.cloneNode(false));
+			if($hort.isString(html) || $hort.isNumber(html))
+				ret[j].innerHTML = html; 
+		}
+		
+		return $hort(ret).attr(elAttr).get();
+	},
+	
+	$hort: <?=$version?>,
+		 
+	// Miller type detection, learning from c.l.js
 	isArray: function(o){ return $toString.call(o) === "[object Array]" },
 	isObject: function(o){ return $toString.call(o) === "[object Object]" },
 	isDate: function(o){ return $toString.call(o) === "[object Date]" },
@@ -166,16 +216,39 @@ $.extend($, {
 	isString: function(o) { return typeof o === "string" },
 	isNumber: function(o){ return typeof o === "number" },
 	isBoolean: function(o){ return typeof o === "boolean" },
+	
+	isHTML: function(o) { return /^<(.|\s)+>$/.test(o) },
 
-	// browser detection
-	isIE: !!(window.ActiveXObject && document.all && !window.opera),
-	isGecko: !!!(document.getBoxObjectFor === undefined),
+	// browser detection, !! added to force return as boolean
+	isIE6: !!(document.createElement('div').style.maxHeight === undefined),
+	isIE7: !!(window.ActiveXObject && !window.opera && window.XMLHttpRequest && !document.querySelectorAll),
+	isIE8: !!(window.ActiveXObject && !window.opera && document.querySelectorAll),
+	isIE: !!(window.ActiveXObject && !window.opera),
+	isGecko: !(document.getBoxObjectFor === undefined),
 	isOpera: !!window.opera,
 	isWebkit: !!(!window.opera && !navigator.taintEnable && document.evaluate && document.getBoxObjectFor === undefined),
 	
+	// trim front/ending whitespaces and newlines so innerHTML won't go crazy
 	cleanHTML: function(HTML){ return HTML.replace(/^\s+|[\n\r\t]|\s+$/g, ''); },
 	
-	// playing nice with otherss out there
+	// make array-like objects into true array, CFT method, note that keyword is array-like
+	// only works for array-like object like querynodelist
+	makeArray: function(o) {
+		try {
+			return Array.prototype.slice.call(o);
+		} catch(e) {
+			var ret = [], length = 0;
+			
+			for(var prop in o)
+				if ($hort.isNumber(parseInt(prop)))
+					ret.push(o[prop]);
+
+			return ret;
+		}
+	},
+	
+	// playing nice with others out there
+	// no secret that it's borrowed from jQuery
 	noConflict: function(extreme){
 		window.$ = _$;
 
@@ -185,88 +258,64 @@ $.extend($, {
 		return $;
 	},
 	
-	// throw error if they can be understood
+	// throw error if can be done without halting script
 	error: function(e) {
 		if(window.console && window.console.log)
 			console.log(e);
 	},
 	
 	// returns a unique set of array
-	unique: function(a) {
-		var r = [];
-		o:for(var i = 0, n = a.length; i < n; i++) {
+	unique: function(array) {
+		var ret = [];
+		o:for(var i = 0, n = array.length; i < n; i++) {
 			for(var x = i + 1 ; x < n; x++) {
-				if(a[x]===a[i]) continue o; // prevent window == document for DOM comparison
+				if(array[x]===array[i]) // prevent window == document for DOM comparison
+					continue o; 
 			}
-			r[r.length] = a[i];
+			ret.push(array[i]);
 		}
-		return r;
+		return ret;
 	},
 	
-	selector: function(qry) {
+	// default selector if CSS selector not included in package
+	selector: function(qry, root) {
+		root = root || document;
+		if(document.querySelectorAll) {
+			if (root.nodeType)
+				return root.querySelectorAll(qry);
+			else {
+				var ret = [];
+				root = $hort.makeArray(root);
+				for(var i=0; i< root.length; i++) {
+					ret = ret.concat(ret, $hort.makeArray(root[0].querySelectorAll(qry)));
+				}
+				return ret;
+			}
+		}
 		qry = qry.split('#');
 		
 		if(qry.length == 2)
 			return [document.getElementById(qry[1])];
-		
 		else
 			return document.getElementsByTagName(qry[0]);
 	},
 	
+	// is advanced CSS selector present?
 	hasSelector: function(){
-		return !!$hort.selector.filter;
-	},
-		 
-	
-	// method to namespace function
-	namespace: function(name, root) {
-		if (name) {
-			// explode namespace with delimiter
-		    name=name.split(".");
-			// root is defaulted to window obj
-		    var ns = root || window;
-			// loop through each level of the namespace
-		    for (var i =0; i<name.length; i++) {
-				// nm is current level name
-		    	var nm = name[i];
-				// if not exist, add current name as obj to parent level, assign ns (parent) to current
-				ns = ns[nm] || ( ns[nm] = {} ); 
-				
-				// this will determine if we have successfully created the namespace
-				if (i === name.length-1) 
-					return !!($.isGenericObject(ns) || $.isFunction(ns)); // only object and function can accept namespacing
-			}
-		}
-		return false;
+		return !!($hort.isFunction($hort.selector.filter));
 	},
 	
-	// rgb(255, 0, 0) -> #FF0000
-	rgbToHex: function(array){
-		if (array.length < 3) return null;
-		if (array.length == 4 && array[3] == 0 && !array) return 'transparent';
-		var hex = [];
-		for (var i = 0; i < 3; i++){
-			var bit = (array[i] - 0).toString(16);
-			hex.push((bit.length == 1) ? '0' + bit : bit);
-		}
-		return '#' + hex.join('');
-	},
-	
-	// z-index -> zIndex
-	camelCase: function(property){
-		return property.replace(/\-(\w)/g, function(all, letter){ return letter.toUpperCase();	});
-	},
-	
-	fns: [], // functions to fire onDOMready
+	ready_fns: [], // functions to fire onDOMready
 	done: false, // onDOMready functions fired yet?
 	
 	// add functions to $hort.fns
 	ready_queue: function(fn){
 		if($.isFunction(fn))
-			$.fns.push(fn);
+			$.ready_fns.push(fn);
 	},
 	
-	// reliable onDOMready code
+	// reliable onDOMready code, thanks to Dean Edwards/Diego Perini/Byron McGregor/John Resig/Matthias Miller et al
+	// a piece of onDOMready code that's four years in the making
 	ready: function(){
 		var init = function() {
 			if($.done) return;
@@ -274,8 +323,8 @@ $.extend($, {
 			var errors = [];
 		
 			// run all functions that are associated with ready
-			for(var i=0; i< $.fns.length; i++) {
-				try{ $.fns[i](); }
+			for(var i=0; i< $.ready_fns.length; i++) {
+				try{ $.ready_fns[i].call(window, $); }
 				catch(e){ errors.push(e); }
 			}
 			
@@ -286,22 +335,20 @@ $.extend($, {
 		if(document.addEventListener)
 			document.addEventListener('DOMContentLoaded', init, false);
 
-		if($.isIE) {
-			if (document.body) {
-				try {
-					document.createElement('div').doScroll('left');
-					return init();
-				} catch(e) {}
-			}
+		if(window.ActiveXObject && !window.opera && document.documentElement) {
+			try {
+				document.createElement('div').doScroll('left');
+				return init();
+			} catch(e) {}
 		}
 		else if (/loaded|complete/.test(document.readyState)) return init();
 		
-		// 100 ms is good enough
+		// loop every 100 ms is good enough
 		if (!$.done) setTimeout(arguments.callee, 100);
 	}
 });
 
-// listen to onDOMready events
+// run the function wait for onDOMready
 $.ready();
 
-})();// end anon
+})();// end self-executing anon

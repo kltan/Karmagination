@@ -967,5 +967,6 @@ var posProcess = function(selector, context){
 // EXPOSE
 $hort.selector = Sizzle;
 $hort.filter = Sizzle.filter;
+$hort.selector.pseudo = Sizzle.selectors.filters;
 })();
 

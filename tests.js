@@ -1,8 +1,8 @@
 
-$(function(){
+$(function(haha){
 //	console.profile('Function calls');
-	$('body');	
-	$(document.body);
+	console.log(haha('body'));	
+/*	$(document.body);
 	$();
 	$('div').length;
 	$('<div>Appended another div</div>').appendTo('#hiddenStuff');
@@ -30,6 +30,6 @@ $(function(){
 	$("br").eq(1).prev()[0];
 	$('body').css('backgroundColor','black');
 	$('body').css('color','white');
-	$('#hiddenStuff').empty();
+	$('#hiddenStuff').empty();*/
 //	console.profileEnd('Function calls');
 });

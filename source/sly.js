@@ -1,8 +1,4 @@
-/*!
- * Sly v1.0rc1 <http://sly.digitarald.com> 
- * (C) 2009 Harald Kirschner <http://digitarald.de>
- * Open source under MIT License 
-*/
+/*! Sly v1.0rc2 <http://sly.digitarald.com> - (C) 2009 Harald Kirschner <http://digitarald.de> - Open source under MIT License */
 
 var Sly = (function() {
 
@@ -10,14 +6,19 @@ var cache = {};
 
 /**
  * Sly::constructor
+ * 
+ * Acts also as shortcut for Sly::search if context argument is given.
  */
-var Sly = function(text) {
-	return cache[text] || (cache[text] = new Sly.initialize(text));
+var Sly = function(text, context, unordered) {
+	// normalise
+	text = (typeof(text) == 'string') ? text.replace(/^\s+|\s+$/, '') : '';
+	
+	var cls = cache[text] || (cache[text] = new Sly.initialize(text));
+	return (context == null) ? cls : cls.search(context, unordered);
 };
 
 Sly.initialize = function(text) {
-	// normalise
-	this.text = (typeof(text) == 'string') ? text.replace(/^\s+/, '') : '';
+	this.text = text;
 };
 
 var proto = Sly.initialize.prototype = Sly.prototype;
@@ -82,11 +83,10 @@ proto.search = function(context, unordered) {
 	if (!context) {
 		context = document;
 	} else {
-		//console.log(this.text, context);
 		if (typeof(context) == 'string') {
 			context = Sly.search(context);
 			iterate = true;
-		} else if (typeof(context.length) == 'number' && typeof(context) != 'function') {
+		} else if (context instanceof Array || (typeof(context.length) == 'number' && context.item)) { // simple isArray
 			if (context.length == 1) context = context[0];
 			else iterate = true;
 		}
@@ -104,7 +104,7 @@ proto.search = function(context, unordered) {
 	var parsed = this.parse();
 	if (!parsed.length) return [];
 
-	var unsorted, // results need to be sorted, comma
+	var mixed, // results need to be sorted, comma
 		current = {}, // unique ids for one iteration process
 		combined, // found nodes from one iteration process
 		nodes, // context nodes from one iteration process
@@ -124,7 +124,7 @@ proto.search = function(context, unordered) {
 
 		if (selector.first) {
 			if (!results) locate = locateFast;
-			else unsorted = true;
+			else mixed = true;
 			if (iterate) nodes = context;
 			else if (selector.combinator) nodes = [context]; // allows combinators before selectors
 		}
@@ -147,15 +147,15 @@ proto.search = function(context, unordered) {
 				combined = selector.combine(combined, nodes[k], selector, state, locate);
 			}
 		}
+
 		if (selector.last) {
-			if (!combined) alert(selector.combinator);
 			if (combined.length) results = combined;
 		} else {
 			nodes = combined;
 		}
 	}
 
-	if (!unordered && unsorted && results) results.sort(Sly.compare);
+	if (!unordered && mixed && results) results.sort(Sly.compare);
 
 	return results || [];
 };
@@ -288,7 +288,8 @@ var blank = function($0) {
 proto.parse = function(plain) {
 	var save = (plain) ? 'plain' : 'parsed';
 	if (this[save]) return this[save];
-
+	
+	var text = this.text;
 	var compute = (plain) ? blank : this.compute;
 
 	var parsed = [], current = create(null);
@@ -299,11 +300,18 @@ proto.parse = function(plain) {
 		current = create(combinator);
 	};
 
+	pattern.lastIndex = 0; // to fix some weird behavior
 	var match, $0;
-
-	while ((match = pattern.exec(this.text))) {
+	
+	while ((match = pattern.exec(text))) {
+		
+		if (match[11]) {
+			if (Sly.verbose) throw SyntaxError('Syntax error, "' + $0 + '" unexpected at #' + pattern.lastIndex + ' in "' + text + '"');
+			return (this[save] = []);
+		}
+		
 		$0 = match[0];
-
+		
 		switch ($0.charAt(0)) {
 			case '.':
 				current.classes.push($0.slice(1).replace(/\\/g, ''));
@@ -338,10 +346,6 @@ proto.parse = function(plain) {
 					if (current.first && !current.ident.length) current.combinator = combinator;
 					else refresh(combinator);
 				} else {
-					if (match[11]) {
-						if (Sly.verbose) throw Error('Syntax error in "' + this.text + '", unexpected character <' + $0 + '> at #' + pattern.lastIndex + ' ');
-						return (this[save] = []);
-					}
 					if ($0 != '*') current.tag = $0;
 				}
 		}
@@ -358,15 +362,14 @@ proto.parse = function(plain) {
 // chains two given functions
 
 function chain(prepend, append, aux, unshift) {
-	var fn = (prepend) ? ((unshift) ? function(node, state) {
+	return (prepend) ? ((unshift) ? function(node, state) {
 		return append(node, aux, state) && prepend(node, state);
 	} : function(node, state) {
 		return prepend(node, state) && append(node, aux, state);
 	}) : function(node, state) {
 		return append(node, aux, state);
 	};
-	fn.$slyIndex = (prepend) ? (prepend.$slyIndex + 1) : 0;
-	return fn;
+	// fn.$slyIndex = (prepend) ? (prepend.$slyIndex + 1) : 0;
 };
 
 
@@ -665,7 +668,7 @@ var pseudos = Sly.pseudos = {
 	},
 
 	'index': function(node, index) {
-		var count = 0;
+		var count = 1;
 		while ((node = node.previousSibling)) {
 			if (node.nodeType == 1 && ++count > index) return false;
 		}
@@ -810,10 +813,7 @@ Sly.recompile();
 
 return Sly;
 
-Sly.verbose = false;
-
 })();
-
 $hort.selector = Sly.search;
 $hort.filter = Sly.filter;
 

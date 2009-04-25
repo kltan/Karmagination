@@ -19,6 +19,10 @@ textarea { width: 500px; height: 200px; }
 pre {margin:3px 0 }
 .passed { color:#0C3 }
 .failed { color:#F00; font-weight:bold }
+
+td { border: 1px solid #000 }
+div { border: 1px solid #F00; margin: 2px; }
+span { border: 1px solid #0F0; margin: 2px; }
 </style>
 </head>
 <body>
@@ -69,10 +73,6 @@ else {
 <?= file_get_contents('unittest.html'); ?>
 </div>
 
-<div id="ya" class="a"></div>
-<div id="ji" class="a"></div>
-<span class="a"></span>
-<b></b>
 
 <? 
 if ($jQuery)echo '<script language="javascript" src="jquery-1.3.2.js" type="text/javascript"></script>';
@@ -80,6 +80,22 @@ else echo'<script language="javascript" src="short.js" type="text/javascript"></
 
 if($tests) echo '<script src="tests.js" type="text/javascript"></script>';
 ?>
+
+<script language="javascript">
+	var str = [];
+	for(var i = 0; i < 40; i++)
+		str.push("<div class='madediv'><span>original child</span></div>");
+			
+	$(str.join('')).appendTo("body");
+	
+	$('div.madediv')
+	 .prepend('<span>before before origin child</span><span>before origin child</span>')
+	 .append('<span>after origin child</span><span>after after origin child</span>')
+	 .before('<div>before div</div>')
+	 .after('<div>after div</div>');
+	
+
+</script>
 
 </body>
 </html>

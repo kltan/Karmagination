@@ -4,29 +4,31 @@ $hort.extend($hort.fn, {
 		if (property && value)
 			return this.setStyle(property, value);
 			
-		if ($hort.isObject(property))
+		if ($hort.isObject(property)) {
 			for(var current in property)
 				this.setStyle(current, property[current]);
-		
-		else
-			this.getStyle(property);
-		
-		return this;
+			return this;
+		}
+
+		return this.getStyle(property);
 	},
 
 	setStyle: function(property, value){
 		if (property == 'opacity') {
 			for (var i=0; i < this.length; i++) {
-				if ($hort.isIE) this[i].style.filter = (parseFloat(value) == 1) ? '' : 'alpha(opacity=' + value * 100 + ')';
-				this[i].style.opacity = value;
+				// safer code, we use isString cause '0' can be intepreted as false
+				if ($hort.isString(this[i].style.filter)) this[i].style.filter = (parseFloat(value) == 1) ? '' : 'alpha(opacity=' + value * 100 + ')';
+				else this[i].style.opacity = value;
 			}
 			return this;
 		}
 		
-		if (property == 'float')
-			property = $hort.isIE ? 'styleFloat' : 'cssFloat';
+		if (property == 'float') {
+			var tmp = document.createElement('DIV');
+			property = $hort.isString(tmp.style.styleFloat) ? 'styleFloat' : 'cssFloat';
+		}
 		else
-			property = $hort.camelCase(property)
+			property = $hort.camelCase(property);
 		
 		if($hort.isString(value) || $hort.isNumber(value))
 			for (var i=0; i < this.length; i++)
@@ -38,8 +40,14 @@ $hort.extend($hort.fn, {
 	getStyle: function(property) {
 		if(!this.length) return null;
 		
-		(property == 'float')?	property = $hort.isIE ? 'styleFloat' : 'cssFloat':	property = $hort.camelCase(property);
-		
+		if (property == 'float') {
+			var tmp = document.createElement('DIV');
+			// safer code, we use isString cause '0' can be intepreted as false
+			property = $hort.isString(tmp.style.styleFloat) ? 'styleFloat' : 'cssFloat';
+		}
+		else
+			property = $hort.camelCase(property);
+			
 		if (this[0].currentStyle) 
 			return this[0].currentStyle[property];
 			
@@ -56,7 +64,7 @@ $hort.extend($hort.fn, {
 	
 	dimension: function(type){
 		if(!this.length) return null;
-		
+
 		// special case, these should not be 0
 		if (this[0] === window || this[0] === document || this[0] === document.documentElement)
 			return this[0]['inner'+type] || window['inner'+type] || document.documentElement['client'+type] || document.body['client'+type];
@@ -75,6 +83,9 @@ $hort.extend($hort.fn, {
 
 $hort.extend($hort, {
 	// calculates current window viewport
+	
+	// probably not too useful for people, can be a plugin
+	/*
 	viewport: function(){
 		var h = window.innerHeight || document.documentElement.clientHeight || document.body.clientHeight,
 			w = window.innerWidth || document.documentElement.clientWidth || document.body.clientWidth,
@@ -87,5 +98,21 @@ $hort.extend($hort, {
 			right: left + w,
 			bottom: top + h
 		};
+	},
+	*/
+	rgbToHex: function(array){
+		if (array.length < 3) return null;
+		if (array.length == 4 && array[3] == 0 && !array) return 'transparent';
+		var hex = [];
+		for (var i = 0; i < 3; i++){
+			var bit = (array[i] - 0).toString(16);
+			hex.push((bit.length == 1) ? '0' + bit : bit);
+		}
+		return '#' + hex.join('');
+	},
+	
+	camelCase: function(property){
+		return property.replace(/\-(\w)/g, function(all, letter){ return letter.toUpperCase();	});
 	}
+	
 });

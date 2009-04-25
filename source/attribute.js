@@ -1,15 +1,20 @@
 $hort.extend($.fn, {
 			 
 	attr: function(prop, val){
+		document.expando = true;
+		// does not support style and events
 		if($hort.isString(prop) && $hort.isString(val)) {
+
 			for(var i=0; i<this.length; i++)
-				this[i].setAttribute(prop, val);
+				(prop==="class") ? this[i]['className'] = val: this[i].setAttribute(prop, val);
+					
 			return this;
 		}
 		else if($hort.isObject(prop)) {
 			for(var i=0; i<this.length; i++)
-				for (prop in val)
-					this[i].setAttribute(prop, val[prop]);
+				for (property in prop)
+					(property==="class") ? this[i]['className'] = prop[property]: this[i].setAttribute(property, prop[property]);
+
 			return this;
 		}
 
@@ -25,7 +30,7 @@ $hort.extend($.fn, {
 	
 	addClass: function(str){
 		for(var i=0; i< this.length; i++)
-			this[i].className += str;
+			this[i].className += ' ' + str;
 			
 		return this;
 	},
@@ -50,34 +55,6 @@ $hort.extend($.fn, {
 		}
 			
 		return this;
-	},
-	
-	html: function(str) {
-		if($hort.isString(str) || $hort.isNumber(str)) {
-			for(var i=0; i< this.length; i++)
-				this[i].innerHTML = str;
-			return this;
-		}
-		return this.length? this[0].innerHTML: null;
-	},
-	
-	text: function(str) {
-		if($hort.isString(str) || $hort.isNumber(str)) {
-			for(var i=0; i< this.length; i++) {
-				if(this[i].innerText)
-					this[i].innerText = str;
-				else
-					this[i].textContent = str;
-			}
-			return this;
-		}
-		
-		var text = [];
-		for(var i=0; i< this.length; i++) {
-			text.push(this[i].innerText || this[i].textContent);
-		}
-		
-		return text.join(' ');
 	},
 	
 	val: function(str){

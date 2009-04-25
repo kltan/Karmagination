@@ -1,6 +1,6 @@
 $hort.extend($.fn, {
 	
-	// walking the DOM
+	// walking the DOM, going forward or backward
 	pedal: function(extreme, direction) {
 		var $ = this, 
 			elements = [];
@@ -52,7 +52,7 @@ $hort.extend($.fn, {
 			}
 		}
 		
-		return $hort(siblings).stack(this);
+		return $hort($hort.unique(siblings)).stack(this);
 	},
 	
 	parent: function() {
@@ -65,7 +65,7 @@ $hort.extend($.fn, {
 		return $hort($hort.unique(parent)).stack(this);
 	},
 	
-	ancestors: function() {
+	ancestors: function(str) {
 		var $ = this,
 			ancestors = [];
 		
@@ -76,6 +76,11 @@ $hort.extend($.fn, {
 				parent = parent.parentNode;
 			}
 		}
+		
+		ancestors = $hort.unique(ancestors);
+		
+		if(str && $hort.hasSelector())
+			ancestors = $hort.filter(str, ancestors)
 
 		return $hort(ancestors).stack(this);
 	},
@@ -94,26 +99,38 @@ $hort.extend($.fn, {
 		
 	},
 	
-	// selecting elements by index
+	// selecting elements by index, returns the element wrapped in $hort object
 	eq: function(num) {
 		return this[num] ? $hort(this[num]).stack(this): $hort([]).stack(this);
 	},
 	
-	get: function() {
-		return this.length? Array.prototype.slice.call(this): [];
+	// get elements as array or get individual element, return the array
+	get: function(num) {
+		return (num === undefined)? Array.prototype.slice.call(this): (this.length && this[num])? this[num]: null;
 	},
 	
 	// adding elements
 	add: function(query) {
 		return query? $hort(this).populate($hort(query), this.length).stack(this) : $hort(this).stack(this);
+	},
+	
+	each: function(fn){
+		for (var i=0; i< this.length; i++)
+			fn.apply(this[i], arguments);
+		return this;
 	}
+	
 });
 
-// selector engine dependent
+// selector engine dependent, only extend if CSS selector engine is detected
 if($hort.hasSelector()) $hort.extend($.fn, {
 	// finding additional decendants
 	find: function(query) {
-		return this.length? $hort($hort.selector(query, this[0])).stack(this): $hort.selector(query).stack(this);
+		var ret = [];
+		for(var i=0; i<this.length; i++)
+			ret = $hort.merge(ret, $hort.selector(query, this[i]));
+		
+		return ret.length? $hort(ret).stack(this): $hort([]).stack(this);
 	},
 	
 	filter: function(query) {

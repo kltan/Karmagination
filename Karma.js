@@ -5,11 +5,11 @@
  * Released under the MIT, BSD, and GPL Licenses
  * Copyright 2009 Kean L. Tan 
  * Start date: 2009-04-01
- * Last build: 2009-05-19 12:59:25 AM
+ * Last build: 2009-05-19 01:27:14 PM
  *
  * CSS functions and browser detection is built upon mootools. Copyright (c) 2006-2008 [Valerio Proietti](http://mad4milk.net/).
- * CFT Copyright Kangax http://yura.thinkweb2.com/cft/ see Karma.support and Karma.temp
- * Karmagination's syntax is inspired by jQuery http://www.jquery.com
+ * CFT Copyright Juriy Zaytsev http://yura.thinkweb2.com/cft/
+ * grep, each, inArray and map taken from jQuery http://www.jquery.com , Copyright (c) John Resig
  */
 
 ;(function(){ //start anon
@@ -34,7 +34,7 @@ Karma.prototype = {
 		
 		var result = [];
 		
-		// if Element is passed
+		// if Element/Node is passed
 		if (query.nodeType || query === window) {
 			this[0] = query;
 			this.length = 1;
@@ -45,7 +45,7 @@ Karma.prototype = {
 		// string is most used query
 		else if(typeof query === "string" && query.length > 0) {
 			// if HTML string passed
-			if (/^<(.|\s)+>$/.test(query)) {
+			if (Karma.isHTML(query)) {
 				result = Karma.HTMLtoNode(query, context);
 				this.query = query;
 			}
@@ -153,38 +153,63 @@ Karma.extend(Karma.fn, {
 
 
 Karma.extend(Karma, {
-		 
+	/* special thanks to jQuery's code so I don't have to manully hunt down the special cases myself */	 
 	HTMLtoNode: function(query, context) {
 		query = Karma.cleanHTML(query);
 		var tmp = context.document.createElement('DIV'), 
-			ret = [];
-
-		if(/^<(tr)+/i.test(query)) {
+			ret = [],
+			subquery = query.substring(0, 10).toLowerCase();;
+		
+		// lesson learned again and again never use Regex when indexOf can replace the job.
+		// td
+		if(!subquery.indexOf('<tr')) {
 			query = '<table>' + query + '</table>';
-			tmp = context.document.createElement('DIV');
 			tmp.innerHTML=query;
 			tmp = tmp.firstChild;
 			
 		}
 		// td or th
-		else if(/^<(td|th)+/i.test(query)) {
+		else if(!subquery.indexOf("<td") || !subquery.indexOf("<th")) {
 			query = '<table><tr>' + query + '</tr></table>';
-			tmp = context.document.createElement('DIV');
 			tmp.innerHTML=query;
-
 			tmp = tmp.firstChild.firstChild.firstChild;
-			
+		}
+		// legend
+		else if(!subquery.indexOf("<legend")) {
+			query = '<fieldset>' + query + '</fieldset>';
+			tmp.innerHTML=query;
+			tmp = tmp.firstChild;
 		}
 		
+		else if(!subquery.indexOf("<option")) {
+			query = '<select multiple="multiple">' + query + '</select>';
+			tmp.innerHTML=query;
+			tmp = tmp.firstChild;
+		}
+		
+		// thead etc
+		else if(/^<thead|tbody|tfoot|colg|capt/.test(subquery)) {
+			query = '<table>' + query + '</table>';
+			tmp.innerHTML=query;
+			tmp = tmp.firstChild;
+		}
+		
+		// col
+		else if(!subquery.indexOf("<col")) {
+			query = '<table><colgroup>' + query + '</colgroup></table>';
+			tmp.innerHTML=query;
+			tmp = tmp.firstChild.firstChild;
+		}
+		
+		// others
 		else if(!tmp.firstChild){
-			tmp = context.document.createElement('DIV');
 			tmp.innerHTML = query;
 		}
 		
 		for (var i =0; i < tmp.childNodes.length; i++)
-			ret[i] = tmp.childNodes[i];
+			ret.push(tmp.childNodes[i]);
 		
-		return ret.length? ret : null;
+		return ret.length ? ret : null;
 	},
 	
 	createElement: function(tagName, attr, html, i, scope) {
@@ -215,8 +240,7 @@ Karma.extend(Karma, {
 	isValue: function(o){ return typeof o === "number" || typeof o === "string" },
 	isBoolean: function(o){ return typeof o === "boolean" },
 	isDefined: function(o) { return o !== undefined },
-	isHTML: function(o) { return /^<(.|\s)+>$/.test(o) },
-
+	isHTML: function(o) { return /^<.+/.test(Karma.trim(o).substring(0,3).toLowerCase()) },
 	// browser detection
 	isIE: !!(window.ActiveXObject && !window.opera),
 	isIE6: !!(document.createElement('DIV').style.maxHeight === undefined),
@@ -227,7 +251,7 @@ Karma.extend(Karma, {
 	isWebkit: !!(!window.opera && !navigator.taintEnable && document.evaluate && document.getBoxObjectFor === undefined),
 	
 	// trim front/ending whitespaces and newlines so innerHTML won't go crazy
-	cleanHTML: function(HTML){ return HTML.replace(/^\s+|[\n\r\t]|\s+$/g, ''); },
+	cleanHTML: function(HTML){ return HTML.replace(/^\s+[\n\r\t]+$/g, ''); },
 	
 	// only works for array-like object like querynodelist
 	makeArray: function(o) {
@@ -708,11 +732,10 @@ Karma.extend(Karma.fn, {
 
 		return Karma(cloned).stack(this);
 	},
-	
+
 	wrap: function(str){
 		for(var i=0;i<this.length;i++) {
-			var $tmp = Karma(str),
-				cloned = $tmp.clone()[0];
+			var	cloned = Karma(str).clone()[0];
 				
 			this[i].parentNode.replaceChild(cloned, this[i]);
 			cloned.appendChild(this[i]);
@@ -860,7 +883,7 @@ Karma.extend(Karma.fn, {
 	},
 	
 	filter: function(query) {
-		return query? Karma(Karma.filter(query, this)).stack(this): Karma(this).stack(this);
+		return query? Karma(Karma.filter(query, this)).stack(this): this;
 	},
 	
 	is: function(query) {
@@ -868,7 +891,7 @@ Karma.extend(Karma.fn, {
 	},
 	
 	not: function(query) {
-		return query? Karma(Karma.selector(':not('+query+')', this)).stack(this) : Karma(this).stack(this);
+		return query? Karma(Karma.selector(':not('+query+')', this)).stack(this) : this;
 	}
 });
 Karma.extend(Karma.fn, {
@@ -1002,6 +1025,7 @@ Karma.extend(Karma, {
 Karma.extend(Karma.fn, {
 
 	on: function(str, fn) {
+		if (!str || !this.length || !fn) return this;
 		str = str.split(/\s+/);
 	
 		for(var j=0; j< str.length; j++) {
@@ -1034,19 +1058,15 @@ Karma.extend(Karma.fn, {
 	},
 		
 	un: function(str, fn) {
+		if (!str || !this.length) return this;
 		token = str.split(/\s+/);
-		
 		for(var j=0; j< token.length; j++) {
 			var ns = token[j].split('.');
 			for(var i=0; i< this.length; i++) {
 				var $ = this[i];
 				
 				if ($.KarmaEvent) {
-					if (Karma.trim(str).length == 0) {
-						delete $['KarmaEvent'];
-					}
-					
-					else if (Karma.isFunction(fn)) {
+					if (Karma.isFunction(fn)) {
 						for (var prop in $.KarmaEvent[ns[0]])
 							if ($.KarmaEvent[ns[0]][prop] == fn)
 								delete $.KarmaEvent[ns[0]][prop];
@@ -1055,9 +1075,8 @@ Karma.extend(Karma.fn, {
 						delete $.KarmaEvent[ns[0]][ns[1]];
 					}
 					else if($.KarmaEvent[ns[0]]) {
-						try {
-							Karma.support.addEventListener ? $['removeEventListener'](ns[0], contextScoper, false): $['detachEvent']('on'+ns[0], contextScoper);
-						} catch(e){};
+						$['on'+ns[0]] = null;
+						$['KarmaEvent'][ns[0]] = null;
 						delete $['KarmaEvent'][ns[0]];
 					}
 				}
@@ -1069,7 +1088,6 @@ Karma.extend(Karma.fn, {
 	
 	
 	fire: function(eventName) {
-		
 		try {
 			for(var i=0; i<this.length; i++)
 				var element = this[i];
@@ -2616,12 +2634,12 @@ window.Sizzle = Sizzle;
 })();
 
 
-if (window.Sizzle) {
+if (this.Sizzle) {
 	Karma.selector = Sizzle;
 	Karma.filter = Sizzle.filter;
 	Karma.selector.pseudo = Sizzle.selectors.filters;
 }
-else if (window.Sly) {
+else if (this.Sly) {
 	Karma.selector = Sly.search;
 	Karma.filter = Sly.filter;
 }

@@ -1,6 +1,7 @@
 Karma.extend(Karma.fn, {
 
 	on: function(str, fn) {
+		if (!str || !this.length || !fn) return this;
 		str = str.split(/\s+/);
 	
 		for(var j=0; j< str.length; j++) {
@@ -33,19 +34,15 @@ Karma.extend(Karma.fn, {
 	},
 		
 	un: function(str, fn) {
+		if (!str || !this.length) return this;
 		token = str.split(/\s+/);
-		
 		for(var j=0; j< token.length; j++) {
 			var ns = token[j].split('.');
 			for(var i=0; i< this.length; i++) {
 				var $ = this[i];
 				
 				if ($.KarmaEvent) {
-					if (Karma.trim(str).length == 0) {
-						delete $['KarmaEvent'];
-					}
-					
-					else if (Karma.isFunction(fn)) {
+					if (Karma.isFunction(fn)) {
 						for (var prop in $.KarmaEvent[ns[0]])
 							if ($.KarmaEvent[ns[0]][prop] == fn)
 								delete $.KarmaEvent[ns[0]][prop];
@@ -54,9 +51,8 @@ Karma.extend(Karma.fn, {
 						delete $.KarmaEvent[ns[0]][ns[1]];
 					}
 					else if($.KarmaEvent[ns[0]]) {
-						try {
-							Karma.support.addEventListener ? $['removeEventListener'](ns[0], contextScoper, false): $['detachEvent']('on'+ns[0], contextScoper);
-						} catch(e){};
+						$['on'+ns[0]] = null;
+						$['KarmaEvent'][ns[0]] = null;
 						delete $['KarmaEvent'][ns[0]];
 					}
 				}
@@ -68,7 +64,6 @@ Karma.extend(Karma.fn, {
 	
 	
 	fire: function(eventName) {
-		
 		try {
 			for(var i=0; i<this.length; i++)
 				var element = this[i];

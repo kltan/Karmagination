@@ -8,8 +8,8 @@
  * Last build: <?=$time."\n"?>
  *
  * CSS functions and browser detection is built upon mootools. Copyright (c) 2006-2008 [Valerio Proietti](http://mad4milk.net/).
- * CFT Copyright Kangax http://yura.thinkweb2.com/cft/ see Karma.support and Karma.temp
- * Karmagination's syntax is inspired by jQuery http://www.jquery.com
+ * CFT Copyright Juriy Zaytsev http://yura.thinkweb2.com/cft/
+ * grep, each, inArray and map taken from jQuery http://www.jquery.com , Copyright (c) John Resig
  */
 
 ;(function(){ //start anon
@@ -34,7 +34,7 @@ Karma.prototype = {
 		
 		var result = [];
 		
-		// if Element is passed
+		// if Element/Node is passed
 		if (query.nodeType || query === window) {
 			this[0] = query;
 			this.length = 1;
@@ -45,7 +45,7 @@ Karma.prototype = {
 		// string is most used query
 		else if(typeof query === "string" && query.length > 0) {
 			// if HTML string passed
-			if (/^<(.|\s)+>$/.test(query)) {
+			if (Karma.isHTML(query)) {
 				result = Karma.HTMLtoNode(query, context);
 				this.query = query;
 			}
@@ -154,38 +154,63 @@ Karma.extend(Karma.fn, {
 
 
 Karma.extend(Karma, {
-		 
+	/* special thanks to jQuery's code so I don't have to manully hunt down the special cases myself */	 
 	HTMLtoNode: function(query, context) {
 		query = Karma.cleanHTML(query);
 		var tmp = context.document.createElement('DIV'), 
-			ret = [];
-
-		if(/^<(tr)+/i.test(query)) {
+			ret = [],
+			subquery = query.substring(0, 10).toLowerCase();;
+		
+		// lesson learned again and again never use Regex when indexOf can replace the job.
+		// td
+		if(!subquery.indexOf('<tr')) {
 			query = '<table>' + query + '</table>';
-			tmp = context.document.createElement('DIV');
 			tmp.innerHTML=query;
 			tmp = tmp.firstChild;
 			
 		}
 		// td or th
-		else if(/^<(td|th)+/i.test(query)) {
+		else if(!subquery.indexOf("<td") || !subquery.indexOf("<th")) {
 			query = '<table><tr>' + query + '</tr></table>';
-			tmp = context.document.createElement('DIV');
 			tmp.innerHTML=query;
-
 			tmp = tmp.firstChild.firstChild.firstChild;
-			
+		}
+		// legend
+		else if(!subquery.indexOf("<legend")) {
+			query = '<fieldset>' + query + '</fieldset>';
+			tmp.innerHTML=query;
+			tmp = tmp.firstChild;
 		}
 		
+		else if(!subquery.indexOf("<option")) {
+			query = '<select multiple="multiple">' + query + '</select>';
+			tmp.innerHTML=query;
+			tmp = tmp.firstChild;
+		}
+		
+		// thead etc
+		else if(/^<thead|tbody|tfoot|colg|capt/.test(subquery)) {
+			query = '<table>' + query + '</table>';
+			tmp.innerHTML=query;
+			tmp = tmp.firstChild;
+		}
+		
+		// col
+		else if(!subquery.indexOf("<col")) {
+			query = '<table><colgroup>' + query + '</colgroup></table>';
+			tmp.innerHTML=query;
+			tmp = tmp.firstChild.firstChild;
+		}
+		
+		// others
 		else if(!tmp.firstChild){
-			tmp = context.document.createElement('DIV');
 			tmp.innerHTML = query;
 		}
 		
 		for (var i =0; i < tmp.childNodes.length; i++)
-			ret[i] = tmp.childNodes[i];
+			ret.push(tmp.childNodes[i]);
 		
-		return ret.length? ret : null;
+		return ret.length ? ret : null;
 	},
 	
 	createElement: function(tagName, attr, html, i, scope) {
@@ -216,8 +241,7 @@ Karma.extend(Karma, {
 	isValue: function(o){ return typeof o === "number" || typeof o === "string" },
 	isBoolean: function(o){ return typeof o === "boolean" },
 	isDefined: function(o) { return o !== undefined },
-	isHTML: function(o) { return /^<(.|\s)+>$/.test(o) },
-
+	isHTML: function(o) { return /^<.+/.test(Karma.trim(o).substring(0,3).toLowerCase()) },
 	// browser detection
 	isIE: !!(window.ActiveXObject && !window.opera),
 	isIE6: !!(document.createElement('DIV').style.maxHeight === undefined),
@@ -228,7 +252,7 @@ Karma.extend(Karma, {
 	isWebkit: !!(!window.opera && !navigator.taintEnable && document.evaluate && document.getBoxObjectFor === undefined),
 	
 	// trim front/ending whitespaces and newlines so innerHTML won't go crazy
-	cleanHTML: function(HTML){ return HTML.replace(/^\s+|[\n\r\t]|\s+$/g, ''); },
+	cleanHTML: function(HTML){ return HTML.replace(/^\s+[\n\r\t]+$/g, ''); },
 	
 	// only works for array-like object like querynodelist
 	makeArray: function(o) {

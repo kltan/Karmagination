@@ -1,10 +1,10 @@
 
-if (window.Sizzle) {
+if (this.Sizzle) {
 	Karma.selector = Sizzle;
 	Karma.filter = Sizzle.filter;
 	Karma.selector.pseudo = Sizzle.selectors.filters;
 }
-else if (window.Sly) {
+else if (this.Sly) {
 	Karma.selector = Sly.search;
 	Karma.filter = Sly.filter;
 }

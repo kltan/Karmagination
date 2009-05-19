@@ -332,11 +332,10 @@ Karma.extend(Karma.fn, {
 
 		return Karma(cloned).stack(this);
 	},
-	
+
 	wrap: function(str){
 		for(var i=0;i<this.length;i++) {
-			var $tmp = Karma(str),
-				cloned = $tmp.clone()[0];
+			var	cloned = Karma(str).clone()[0];
 				
 			this[i].parentNode.replaceChild(cloned, this[i]);
 			cloned.appendChild(this[i]);

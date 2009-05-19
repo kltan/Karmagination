@@ -137,7 +137,7 @@ Karma.extend(Karma.fn, {
 	},
 	
 	filter: function(query) {
-		return query? Karma(Karma.filter(query, this)).stack(this): Karma(this).stack(this);
+		return query? Karma(Karma.filter(query, this)).stack(this): this;
 	},
 	
 	is: function(query) {
@@ -145,6 +145,6 @@ Karma.extend(Karma.fn, {
 	},
 	
 	not: function(query) {
-		return query? Karma(Karma.selector(':not('+query+')', this)).stack(this) : Karma(this).stack(this);
+		return query? Karma(Karma.selector(':not('+query+')', this)).stack(this) : this;
 	}
 });

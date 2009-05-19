@@ -1,10 +1,10 @@
-$hort.extend($hort.fn, {
+Karma.extend(Karma.fn, {
 			 
 	css: function(property, value) {
 		if (property && value)
 			return this.setStyle(property, value);
 			
-		if ($hort.isObject(property)) {
+		if (Karma.isObject(property)) {
 			for(var current in property)
 				this.setStyle(current, property[current]);
 			return this;
@@ -14,23 +14,32 @@ $hort.extend($hort.fn, {
 	},
 
 	setStyle: function(property, value){
+		if(!this.length) return this;
+		
 		if (property == 'opacity') {
 			for (var i=0; i < this.length; i++) {
-				// safer code, we use isString cause '0' can be intepreted as false
-				if ($hort.isString(this[i].style.filter)) this[i].style.filter = (parseFloat(value) == 1) ? '' : 'alpha(opacity=' + value * 100 + ')';
-				else this[i].style.opacity = value;
+				if(Karma.support.filter) this[i].style.filter = (parseFloat(value) == 1) ? '' : 'alpha(opacity=' + value * 100 + ')';
+				else if (Karma.support.opacity) this[i].style.opacity = value;
 			}
 			return this;
 		}
 		
-		if (property == 'float') {
-			var tmp = document.createElement('DIV');
-			property = $hort.isString(tmp.style.styleFloat) ? 'styleFloat' : 'cssFloat';
+		if (property.match(/scrollTop|scrollLeft/)) {
+			for (var i=0; i < this.length; i++) {
+				this[i][property] = value;
+			}
+		}
+		
+		else if (property == 'float') {
+			property = Karma.support.styleFloat ? 'styleFloat' : 'cssFloat';
 		}
 		else
-			property = $hort.camelCase(property);
+			property = Karma.camelCase(property);
 		
-		if($hort.isString(value) || $hort.isNumber(value))
+		// convert integers to strings;
+		if (Karma.isNumber(value)) value += 'px';
+		
+		else if(Karma.isString(value))
 			for (var i=0; i < this.length; i++)
 				this[i].style[property] = value;
 		
@@ -40,23 +49,21 @@ $hort.extend($hort.fn, {
 	getStyle: function(property) {
 		if(!this.length) return null;
 		
-		if (property == 'float') {
-			var tmp = document.createElement('DIV');
-			// safer code, we use isString cause '0' can be intepreted as false
-			property = $hort.isString(tmp.style.styleFloat) ? 'styleFloat' : 'cssFloat';
-		}
+		if (property == 'float')
+			property = Karma.support.styleFloat ? 'styleFloat' : 'cssFloat';
+
 		else
-			property = $hort.camelCase(property);
+			property = Karma.camelCase(property);
 			
 		if (this[0].currentStyle) 
 			return this[0].currentStyle[property];
 			
 		var computed = document.defaultView.getComputedStyle(this[0], null)[property],
-			color = String(computed).match(/rgba?\([\d\s,]+\)/);
+			color = (computed + '').match(/rgba?\([\d\s,]+\)/);
 			
 		if (color) {
 			var rgb = color[0].match(/\d{1,3}/g);
-			computed = $hort.rgbToHex(rgb);
+			computed = Karma.rgbToHex(rgb);
 		}
 		
 		return computed;
@@ -67,9 +74,9 @@ $hort.extend($hort.fn, {
 
 		// special case, these should not be 0
 		if (this[0] === window || this[0] === document || this[0] === document.documentElement)
-			return this[0]['inner'+type] || window['inner'+type] || document.documentElement['client'+type] || document.body['client'+type];
-			
-		return this[0]['client'+type];
+			return (this[0]['client'+type] || window['client'+type] || document.documentElement['client'+type] || document.body['client'+type]);
+		
+		return this[0]['offset'+type];
 	},
 	
 	width: function(){
@@ -81,10 +88,8 @@ $hort.extend($hort.fn, {
 	}
 });
 
-$hort.extend($hort, {
+Karma.extend(Karma, {
 	// calculates current window viewport
-	
-	// probably not too useful for people, can be a plugin
 	/*
 	viewport: function(){
 		var h = window.innerHeight || document.documentElement.clientHeight || document.body.clientHeight,
@@ -100,6 +105,7 @@ $hort.extend($hort, {
 		};
 	},
 	*/
+	
 	rgbToHex: function(array){
 		if (array.length < 3) return null;
 		if (array.length == 4 && array[3] == 0 && !array) return 'transparent';

@@ -1,4 +1,4 @@
-$hort.extend($.fn, {
+Karma.extend(Karma.fn, {
 	
 	// walking the DOM, going forward or backward
 	pedal: function(extreme, direction) {
@@ -19,7 +19,7 @@ $hort.extend($.fn, {
 	
 		};
 		
-		return $hort(elements).stack($);
+		return Karma(elements).stack($);
 	},
 
 	next: function() {
@@ -52,7 +52,7 @@ $hort.extend($.fn, {
 			}
 		}
 		
-		return $hort($hort.unique(siblings)).stack(this);
+		return Karma(Karma.unique(siblings)).stack(this);
 	},
 	
 	parent: function() {
@@ -62,7 +62,7 @@ $hort.extend($.fn, {
 		for (var i=0; i< $.length; i++)
 			parent.push($[i].parentNode);
 			
-		return $hort($hort.unique(parent)).stack(this);
+		return Karma(Karma.unique(parent)).stack(this);
 	},
 	
 	ancestors: function(str) {
@@ -77,12 +77,12 @@ $hort.extend($.fn, {
 			}
 		}
 		
-		ancestors = $hort.unique(ancestors);
+		ancestors = Karma.unique(ancestors);
 		
-		if(str && $hort.hasSelector())
-			ancestors = $hort.filter(str, ancestors)
+		if(str && Karma.hasSelector())
+			ancestors = Karma.filter(str, ancestors)
 
-		return $hort(ancestors).stack(this);
+		return Karma(ancestors).stack(this);
 	},
 	
 	children: function() {
@@ -95,13 +95,21 @@ $hort.extend($.fn, {
 					children.push($[i].childNodes[j]);
 		}
 		
-		return $hort(children).stack(this);
+		return Karma(children).stack(this);
 		
 	},
 	
-	// selecting elements by index, returns the element wrapped in $hort object
+	index: function(o){
+		return Karma.inArray(Karma(o)[0], this);
+	},
+	
+	slice: function(start, end){
+		return Karma(Array.prototype.slice.call(this, start, end)).stack(this);
+	},
+	
+	// selecting elements by index, returns the element wrapped in Karma object
 	eq: function(num) {
-		return this[num] ? $hort(this[num]).stack(this): $hort([]).stack(this);
+		return this[num] ? Karma(this[num]).stack(this): Karma([]).stack(this);
 	},
 	
 	// get elements as array or get individual element, return the array
@@ -111,37 +119,32 @@ $hort.extend($.fn, {
 	
 	// adding elements
 	add: function(query) {
-		return query? $hort(this).populate($hort(query), this.length).stack(this) : $hort(this).stack(this);
+		return query? Karma(this).populate(Karma(query), this.length).stack(this) : Karma(this).stack(this);
 	},
 	
 	each: function(fn){
 		for (var i=0; i< this.length; i++)
 			fn.apply(this[i], arguments);
 		return this;
-	}
-	
-});
+	},
 
-// selector engine dependent, only extend if CSS selector engine is detected
-if($hort.hasSelector()) $hort.extend($.fn, {
-	// finding additional decendants
 	find: function(query) {
 		var ret = [];
 		for(var i=0; i<this.length; i++)
-			ret = $hort.merge(ret, $hort.selector(query, this[i]));
+			ret = Karma.merge(ret, Karma.selector(query, this[i]));
 		
-		return ret.length? $hort(ret).stack(this): $hort([]).stack(this);
+		return ret.length? Karma(ret).stack(this): Karma([]).stack(this);
 	},
 	
 	filter: function(query) {
-		return query? $hort($hort.filter(query, this)).stack(this): $hort(this).stack(this);
+		return query? Karma(Karma.filter(query, this)).stack(this): Karma(this).stack(this);
 	},
 	
 	is: function(query) {
-		return query? !!$hort.filter(query, this).length: false;
+		return query? !!Karma.filter(query, this).length: false;
 	},
 	
 	not: function(query) {
-		return query? $hort($hort.selector(':not('+query+')', this)).stack(this) : $hort(this).stack(this);
+		return query? Karma(Karma.selector(':not('+query+')', this)).stack(this) : Karma(this).stack(this);
 	}
 });

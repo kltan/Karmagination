@@ -1,36 +1,51 @@
-$hort.extend($.fn, {
+Karma.extend(Karma.fn, {
 			 
 	attr: function(prop, val){
-		document.expando = true;
-		// does not support style and events
-		if($hort.isString(prop) && $hort.isString(val)) {
-
-			for(var i=0; i<this.length; i++)
-				(prop==="class") ? this[i]['className'] = val: this[i].setAttribute(prop, val);
+		// document.expando = true;
+		
+		// does not support events
+		// setting one property
+		if(Karma.isString(prop) && (Karma.isValue(val))) {
+			for(var i=0; i<this.length; i++) {
+				if (/id|href|name|dir|title/.test(prop))
+					this[i][prop] = val;		  
+				else if (prop==="class") 
+					this[i]['className'] = val;
+				else if (prop==="style" && Karma.support.cssText) 
+					this[i].style.cssText = val;
+				else 
+					this[i].setAttribute(prop, val);
+			}
 					
 			return this;
 		}
-		else if($hort.isObject(prop)) {
-			for(var i=0; i<this.length; i++)
-				for (property in prop)
-					(property==="class") ? this[i]['className'] = prop[property]: this[i].setAttribute(property, prop[property]);
-
+		// setting multiple property
+		else if(Karma.isObject(prop)) {
+			for (property in prop)
+				this.attr(property, prop[property]);
 			return this;
 		}
-
+		
+		// getting property of first element
 		return this.length? this[0].getAttribute(val): null;
 	},
 	
 	removeAttr: function(prop) {
-		for(var i=0; i<this.length; i++)
+		for(var i=0; i<this.length; i++) {
+			if (prop==="class")
+				this[i]['className'] = '';
+			else if (prop==="style" && Karma.support.cssText) 
+				this[i].style.cssText = '';
+
 			this[i].removeAttribute(prop);
+		}
 			
 		return this;
 	},
 	
 	addClass: function(str){
 		for(var i=0; i< this.length; i++)
-			this[i].className += ' ' + str;
+			this[i].className += ' ' + str; // browser will automatically remove duplicates and trim
 			
 		return this;
 	},
@@ -43,7 +58,7 @@ $hort.extend($.fn, {
 	},
 	
 	hasClass: function(str) {
-		return this.length? !!(this[0].className.indexOf(str) >= 0): false;
+		return this.length ? !!(this[0].className.indexOf(str) >= 0): false;
 	},
 	
 	toggleClass: function(str) {
@@ -58,13 +73,16 @@ $hort.extend($.fn, {
 	},
 	
 	val: function(str){
-		if($hort.isString(str) || $hort.isNumber(str)) {
+		// setting values
+		if(Karma.isValue(str)) { // if the str passed is a value
 			for(var i=0; i< this.length; i++)
-				this[i].value = str;
+				if (Karma.isString(this[i].value)) // determine if the value property exists in the current element
+					this[i].value = str;
 
 			return this;
 		}
-		return this.length? this[0].value: null;
+		// getting value
+		return (this[0] && Karma.isString(this[0].value)) ? this[0].value : null;
 	}
 
 });

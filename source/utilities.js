@@ -1,8 +1,8 @@
-$hort.extend($hort, {
+Karma.extend(Karma, {
 			 
 	// method to namespace function, taking a chapter from YUI
 	namespace: function(name, root) {
-		if ($hort.isString(name)) {
+		if (Karma.isString(name)) {
 			// explode namespace with delimiter
 		    name=name.split(".");
 			// root is defaulted to window obj
@@ -14,19 +14,16 @@ $hort.extend($hort, {
 				// if not exist, add current name as obj to parent level, assign ns (parent) to current
 				ns = ns[nm] || ( ns[nm] = {} ); 
 				
-				// determine if created namespace is valid or not;
-				if (i == name.length-1) {
-					if (!($.isGenericObject(ns) || $.isFunction(ns)))
-						$hort.error(error); 
+				if (i == name.length-1) 
 					return ns;
-				}
 
 			}
 		}
 	},
 	
 	trim: function(str){
-		return str.replace(/^\s+|\s+$/g, '');
+		// unicode friendly string trim for older browsers that don't catch all whitespaces
+		return str.replace(/^[\s\xA0]+/, '').replace(/[\s\xA0]+$/, ''); 
 	},
 			 
 	grep: function(o, fn) {
@@ -48,11 +45,11 @@ $hort.extend($hort, {
 	},
 	
 	map: function(o, fn) {
-		var arry = [];
+		var array = [];
 		for ( var i = 0; i < o.length; i++ ) 
-			arry.push(fn.call(o[i], o[i], i));
+			array.push(fn.call(o[i], i));
 
-		return arry;
+		return array;
 	},
 	
 	// merge all arrays
@@ -60,3 +57,4 @@ $hort.extend($hort, {
 		return Array.prototype.concat.apply([], arguments);
 	}
 });
+

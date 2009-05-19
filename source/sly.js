@@ -1,6 +1,6 @@
 /*! Sly v1.0rc2 <http://sly.digitarald.com> - (C) 2009 Harald Kirschner <http://digitarald.de> - Open source under MIT License */
 
-var Sly = (function() {
+window.Sly = (function() {
 
 var cache = {};
 
@@ -9,12 +9,12 @@ var cache = {};
  * 
  * Acts also as shortcut for Sly::search if context argument is given.
  */
-var Sly = function(text, context, unordered) {
+var Sly = function(text, context, results, options) {
 	// normalise
 	text = (typeof(text) == 'string') ? text.replace(/^\s+|\s+$/, '') : '';
 	
 	var cls = cache[text] || (cache[text] = new Sly.initialize(text));
-	return (context == null) ? cls : cls.search(context, unordered);
+	return (context == null) ? cls : cls.search(context, results, options);
 };
 
 Sly.initialize = function(text) {
@@ -44,14 +44,14 @@ var support = Sly.support = {};
 	
 	// Our guinea pig
 	var testee = document.createElement('div'), id = (new Date()).getTime();
-	testee.innerHTML = '<a name="' + id + '" class="Â b"></a>';
+	testee.innerHTML = '<a name="' + id + '" class="â‚¬ b"></a>';
 	testee.appendChild(document.createComment(''));
 	
 	// IE returns comment nodes for getElementsByTagName('*')
 	support.byTagAddsComments = (testee.getElementsByTagName('*').length > 1);
 	
 	// Safari can't handle uppercase or unicode characters when in quirks mode.
-	support.hasQsa = !!(testee.querySelectorAll && testee.querySelectorAll('.Â').length);
+	support.hasQsa = !!(testee.querySelectorAll && testee.querySelectorAll('.â‚¬').length);
 	
 	support.hasByClass = (function() {
 		if (!testee.getElementsByClassName || !testee.getElementsByClassName('b').length) return false;
@@ -77,39 +77,33 @@ var locateFast = function() {
 /**
  * Sly::search
  */
-proto.search = function(context, unordered) {
-	var iterate;
+proto.search = function(context, results, options) {
+	options = options || {};
+	
+	var iterate, i, item;
 
 	if (!context) {
 		context = document;
-	} else {
+	} else if (context.nodeType != 1 && context.nodeType != 9) {
 		if (typeof(context) == 'string') {
 			context = Sly.search(context);
 			iterate = true;
-		} else if (context instanceof Array || (typeof(context.length) == 'number' && context.item)) { // simple isArray
-			if (context.length == 1) context = context[0];
-			else iterate = true;
+		} else if (Object.prototype.toString.call(context) == '[object Array]' || (typeof(context.length) == 'number' && context.item)) { // simple isArray
+			var filtered = [];
+			for (i = 0; (item = context[i]); i++) {
+				if (item.nodeType == 1 || item.nodeType == 9) filtered.push(item);
+			}
+			iterate = (filtered.length > 1);
+			context = (iterate) ? filtered : (filtered[0] || document);
 		}
 	}
-
-	var results; // overall result
-
-	if (support.hasQsa && !iterate && context.nodeType == 9) {
-		try {
-			results = context.querySelectorAll(this.text);
-		} catch(e) {}
-		if (results) return Sly.toArray(results);
-	}
-
-	var parsed = this.parse();
-	if (!parsed.length) return [];
-
+	
 	var mixed, // results need to be sorted, comma
-		current = {}, // unique ids for one iteration process
 		combined, // found nodes from one iteration process
 		nodes, // context nodes from one iteration process
 		all = {}, // unique ids for overall result
 		state = {}; // matchers temporary state
+	var current = all; // unique ids for one iteration process
 
 	// unifiers
 	var getUid = Sly.getUid;
@@ -117,6 +111,27 @@ proto.search = function(context, unordered) {
 		var uid = getUid(node);
 		return (current[uid]) ? null : (current[uid] = true);
 	};
+	
+	if (results && results.length) { // fills unique ids, does not alter the given results
+		for (i = 0; (item = results[i]); i++) locateCurrent(item);
+	}
+
+	if (support.hasQsa && !iterate && context.nodeType == 9 && !(/\[/).test(this.text)) {
+		try {
+			var query = context.querySelectorAll(this.text);
+		} catch(e) {}
+		if (query) {
+			if (!results) return Sly.toArray(query);
+			for (i = 0; (item = query[i]); i++) {
+				if (locateCurrent(item)) results.push(item);
+			}
+			if (!options.unordered) results.sort(Sly.compare);
+			return results;
+		}
+	}
+
+	var parsed = this.parse();
+	if (!parsed.length) return [];
 
 	for (var i = 0, selector; (selector = parsed[i]); i++) {
 
@@ -155,7 +170,7 @@ proto.search = function(context, unordered) {
 		}
 	}
 
-	if (!unordered && mixed && results) results.sort(Sly.compare);
+	if (!options.unordered && mixed && results) results.sort(Sly.compare);
 
 	return results || [];
 };
@@ -163,8 +178,8 @@ proto.search = function(context, unordered) {
 /**
  * Sly::find
  */
-proto.find = function(context) {
-	return this.search(context)[0];
+proto.find = function(context, results, options) {
+	return this.search(context, results, options)[0];
 };
 
 
@@ -395,6 +410,7 @@ var matchClass = function(node, expr) {
 };
 
 var prepareAttribute = function(attr) {
+	attr.getter = Sly.lookupAttribute(attr.name) || Sly.getAttribute;
 	if (!attr.operator || !attr.value) return attr;
 	var parser = operators[attr.operator];
 	if (parser) { // @todo: Allow functions, not only regex
@@ -405,7 +421,7 @@ var prepareAttribute = function(attr) {
 };
 
 var matchAttribute = function(node, attr) {
-	var read = Sly.getAttribute(node, attr.name);
+	var read = attr.getter(node, attr.name);
 	switch (attr.operator) {
 		case null: return read;
 		case '=': return (read == attr.value);
@@ -534,7 +550,6 @@ proto.compute = function(selector) {
 			}, (not.parse().length == 1) ? not.parsed[0] : not);
 		} else {
 			var parser = pseudos[item.name];
-			// chain(match, matchAttribute, prepareAttribute(item))
 			if (parser) match = chain(match, parser, item.value);
 		}
 
@@ -721,13 +736,36 @@ var operators = Sly.operators = {
 
 // public, overridable
 
-Sly.getAttribute = function(node, name) {
-	if (name == 'class') return node.className;
-	return node.getAttribute(name, 2); // 2 for IE, others ignore it
+/**
+ * Sly.getAttribute & Sly.lookupAttribute
+ * 
+ * @todo add more translations
+ */
+var translate = {
+	'class': 'className'
+}
+
+Sly.lookupAttribute = function(name) {
+	var prop = translate[name];
+	if (prop) {
+		return function(node) {
+			return node[prop];
+		}
+	}
+	var flag = /^(?:src|href|action)$/.test(name) ? 2 : 0;
+	return function(node) {
+		return node.getAttribute(name, flag);
+	}
 };
 
+Sly.getAttribute = function(node, name) {
+	return node.getAttribute(name);
+};
 
-var toArray = function(nodes) {
+/**
+ * Sly.toArray
+ */
+var toArray = Array.slice || function(nodes) {
 	return Array.prototype.slice.call(nodes);
 };
 
@@ -750,6 +788,9 @@ Sly.compare = (document.compareDocumentPosition) ? function (a, b) {
 	return (a.sourceIndex - b.sourceIndex);
 };
 
+/**
+ * Sly.getUid
+ */
 var nextUid = 1;
 
 Sly.getUid = (window.ActiveXObject) ? function(node) {
@@ -814,7 +855,3 @@ Sly.recompile();
 return Sly;
 
 })();
-$hort.selector = Sly.search;
-$hort.filter = Sly.filter;
-
-

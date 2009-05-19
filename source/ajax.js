@@ -1,14 +1,14 @@
-$hort.extend($hort, {
+Karma.extend(Karma, {
 
 	ajax: function(o) {
 		
-		o = $hort.extend({
+		o = Karma.extend({
 			type: 'GET',
 			data: '',
 			url: '',
-			loading: function(){alert('loading')},
-			success: function(){alert('success')},
-			error: function(){ alert('error')}
+			loading: function(){},
+			success: function(){},
+			error: function(){}
 		 }, o);
 	
 		var oXHR = window.XMLHttpRequest? new XMLHttpRequest(): new ActiveXObject("Microsoft.XMLHTTP");
@@ -33,7 +33,7 @@ $hort.extend($hort, {
 		}
 		
 		o.loading();
-		oXHR.open("GET",o.url,true);
+		oXHR.open(o.type, o.url, true);
 		oXHR.send(null);
 	}
 

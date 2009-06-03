@@ -1,7 +1,7 @@
 Karma.extend(Karma.fn, {
 			 
 	css: function(property, value) {
-		if (property && value)
+		if (property && Karma.isValue(value))
 			return this.setStyle(property, value);
 			
 		if (Karma.isObject(property)) {
@@ -15,31 +15,41 @@ Karma.extend(Karma.fn, {
 
 	setStyle: function(property, value){
 		if(!this.length) return this;
-		
-		if (property == 'opacity') {
+
+		if (property === 'opacity') {
 			for (var i=0; i < this.length; i++) {
-				if(Karma.support.filter) this[i].style.filter = (parseFloat(value) == 1) ? '' : 'alpha(opacity=' + value * 100 + ')';
+				// if we have perfect opacity, better to remove it to restore the antialiasing ablity of IE
+				if(Karma.support.filter) this[i].style.filter = (parseInt(value) == 1) ? '' : 'alpha(opacity=' + (value * 100) + ')';
 				else if (Karma.support.opacity) this[i].style.opacity = value;
 			}
 			return this;
 		}
 		
-		if (property.match(/scrollTop|scrollLeft/)) {
+		if (property === 'scrollTop' || property === 'scrollLeft') {
+			//alert (property + ' ' + parseInt(value));
+		//document.body[property] = parseInt(value);
 			for (var i=0; i < this.length; i++) {
-				this[i][property] = value;
+				if (this[i]===document.documentElement || this[i]===document || this[i]===document.body || this[i]===window) {
+					document.body[property] = value;
+					document.documentElement[property] = value;
+				}
+				else
+					this[i][property] = value;
 			}
+			return this;
 		}
 		
-		else if (property == 'float') {
+		if (property === 'float') {
 			property = Karma.support.styleFloat ? 'styleFloat' : 'cssFloat';
 		}
-		else
-			property = Karma.camelCase(property);
+		
+		/*else
+			property = Karma.camelCase(property);*/
 		
 		// convert integers to strings;
 		if (Karma.isNumber(value)) value += 'px';
 		
-		else if(Karma.isString(value))
+		if(Karma.isString(value))
 			for (var i=0; i < this.length; i++)
 				this[i].style[property] = value;
 		
@@ -49,11 +59,19 @@ Karma.extend(Karma.fn, {
 	getStyle: function(property) {
 		if(!this.length) return null;
 		
+		if (property === 'scrollTop' || property === 'scrollLeft')
+			return (this[0]===document || this[0]===document.body || this[0]===window)? document.documentElement[property]: this[0][property];
+		
 		if (property == 'float')
 			property = Karma.support.styleFloat ? 'styleFloat' : 'cssFloat';
-
-		else
-			property = Karma.camelCase(property);
+		
+		else if (property == 'opacity' && this[0].filters) {
+			try { var opacity = this[0].filters('alpha').opacity; }	catch(e){ return 1; }
+			return opacity/100;
+		}
+		
+		/*else
+			property = Karma.camelCase(property);*/
 			
 		if (this[0].currentStyle) 
 			return this[0].currentStyle[property];
@@ -116,9 +134,9 @@ Karma.extend(Karma, {
 		}
 		return '#' + hex.join('');
 	},
-	
+	/*
 	camelCase: function(property){
 		return property.replace(/\-(\w)/g, function(all, letter){ return letter.toUpperCase();	});
-	}
+	}*/
 	
 });

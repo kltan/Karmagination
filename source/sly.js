@@ -1,4 +1,10 @@
-/*! Sly v1.0rc2 <http://sly.digitarald.com> - (C) 2009 Harald Kirschner <http://digitarald.de> - Open source under MIT License */
+
+/*! 
+ * Sly v1.0rc2 <http://sly.digitarald.com> - 
+ * (C) 2009 Harald Kirschner 
+ * <http://digitarald.de> - 
+ * Open source under MIT License 
+ */
 
 window.Sly = (function() {
 

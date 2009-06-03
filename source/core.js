@@ -1,30 +1,31 @@
 /*!
- * Karmagination <?=$version."\n"?>
+ * Karmagination <?=$version?> - Fast and Simple
  * http://www.karmagination.com
- * JS development simplified 
  * Released under the MIT, BSD, and GPL Licenses
- * Copyright 2009 Kean L. Tan 
+ * Copyright (c) 2009 Kean L. Tan 
  * Start date: 2009-04-01
  * Last build: <?=$time."\n"?>
  *
+ * Attribution:
  * CSS functions and browser detection is built upon mootools. Copyright (c) 2006-2008 [Valerio Proietti](http://mad4milk.net/).
- * CFT Copyright Juriy Zaytsev http://yura.thinkweb2.com/cft/
- * grep, each, inArray and map taken from jQuery http://www.jquery.com , Copyright (c) John Resig
+ * CFT Copyright (c) Juriy Zaytsev http://yura.thinkweb2.com/cft/
+ * The programming syntax is modeled after jQuery http://www.jquery.com
  */
 
 ;(function(){ //start anon
 
 var window = this,
 	document = this.document,
-	undefined; // undefine munging
-	
-var _$ = window.$, _Karma = window.Karma; // backup current pointer
+	undefined,
+	_$ = window.$, 
+	_Karma = window.Karma;
 
 var Karma = window.$ = window.Karma = function( query, context ) {
 	return new Karma.prototype.init( query, context );	// Constructor
 };
 
 Karma.prototype = {
+	// contructor function, we try to minimize function calls inside here
 	init: function(query, context) {
 		query = query || document;
 		context = context || window;
@@ -44,28 +45,27 @@ Karma.prototype = {
 		
 		// string is most used query
 		else if(typeof query === "string" && query.length > 0) {
+			this.query = query;
 			// if HTML string passed
-			if (Karma.isHTML(query)) {
+			if (Karma.isHTML(query))
 				result = Karma.HTMLtoNode(query, context);
-				this.query = query;
-			}
-			// if CSS query
+
+			// assume as CSS query
 			else {
-				result = Karma.selector(query, context.document);
-				this.query = query;
+				if (context.document) context = context.document;
+				result = Karma.selector(query, context);
 			}
 		}
 		
 		// onDOMready
 		else if (typeof query === "function") {
-			this[0] = context.document;
 			if(!Karma.isReady) {
 				Karma.ready_queue(function(){
-					query.call(context, $);
+					query(Karma);
 				});
 			}
 			else
-				query.call(context, $);
+				query(Karma);
 				
 			return;
 		}
@@ -73,8 +73,7 @@ Karma.prototype = {
 		// if array, object or Karma object
 		else { 
 			result = query; 
-			if(query.query)
-				this.query = query.query;
+			if(query.query)	this.query = query.query;
 		}
 		
 		this.populate(result);
@@ -102,7 +101,7 @@ Karma.extend(Karma.fn, {
 		// make a clean array
 		this.length = n;
 		if(!Karma.isArray(elements))
-			elements = Array.prototype.slice.call(elements);
+			elements = Karma.makeArray(elements);
 
 		// exit if no elements found
 		if (!elements.length) return this;
@@ -141,27 +140,30 @@ Karma.extend(Karma.fn, {
 		return this.KarmaStack[0];
 	},
 	
-	// how many elements in Karma
+	// how many elements in Karma, initially set to 0
 	length: 0,
 	
-	// the query that was passed into the first unchained instance of Karma
+	// query that created the current instance of Karma
 	query: null,
 	
-	// Karma version
-	Karma: <?=$version?>
+	isKarma: true
 	
 });
 
 
 Karma.extend(Karma, {
-	/* special thanks to jQuery's code so I don't have to manully hunt down the special cases myself */	 
+	// Karmagination version
+	version: <?=$version?>,
+	
+	/* special thanks to insights from jQuery's cases so I don't have to manually hunt down the special cases myself */	 
 	HTMLtoNode: function(query, context) {
+		context = context || window;
 		query = Karma.cleanHTML(query);
-		var tmp = context.document.createElement('DIV'), 
-			ret = [],
+		var tmp = (context === window) ? Karma.temp.div : context.document.createElement('DIV'), 
 			subquery = query.substring(0, 10).toLowerCase();;
-		
+
 		// lesson learned again and again never use Regex when indexOf can replace the job.
+		
 		// td
 		if(!subquery.indexOf('<tr')) {
 			query = '<table>' + query + '</table>';
@@ -181,14 +183,14 @@ Karma.extend(Karma, {
 			tmp.innerHTML=query;
 			tmp = tmp.firstChild;
 		}
-		
+		// option
 		else if(!subquery.indexOf("<option")) {
 			query = '<select multiple="multiple">' + query + '</select>';
 			tmp.innerHTML=query;
 			tmp = tmp.firstChild;
 		}
 		
-		// thead etc
+		// thead etc, well we made subquery soooo short it should not be a problem
 		else if(/^<thead|tbody|tfoot|colg|capt/.test(subquery)) {
 			query = '<table>' + query + '</table>';
 			tmp.innerHTML=query;
@@ -201,35 +203,21 @@ Karma.extend(Karma, {
 			tmp.innerHTML=query;
 			tmp = tmp.firstChild.firstChild;
 		}
+		// script and link
+		else if (!subquery.indexOf("<script") || !subquery.indexOf("<link") ) {
+			query = 'div<div>' + query + '</div>';
+			tmp.innerHTML=query;
+			tmp = tmp.lastChild;
+		}
 		
 		// others
-		else if(!tmp.firstChild){
+		else {
 			tmp.innerHTML = query;
 		}
 		
-		for (var i =0; i < tmp.childNodes.length; i++)
-			ret.push(tmp.childNodes[i]);
-		
-		return ret.length ? ret : null;
+		return tmp.childNodes.length ? Karma.makeArray(tmp.childNodes) : null;
 	},
-	
-	createElement: function(tagName, attr, html, i, scope) {
-		if(!Karma.isNumber(parseInt(i)) || i===0) i = 1;
-		scope = scope || window;
-				
-		var ret = [],
-			el = scope.document.createElement(tagName.toUpperCase());
-			
-		for(var j=0; j<i; j++) {
-			ret.push(el.cloneNode(false));
-			if(Karma.isValue(html)) {
-				ret[j].innerHTML = html; 
-			}
-		}
-		
-		return Karma(ret).attr(attr).get();
-	},
-		 
+	 
 	// type detection
 	isArray: function(o){ return Object.prototype.toString.call(o) === "[object Array]" },
 	isObject: function(o){ return Object.prototype.toString.call(o) === "[object Object]" },
@@ -242,6 +230,7 @@ Karma.extend(Karma, {
 	isBoolean: function(o){ return typeof o === "boolean" },
 	isDefined: function(o) { return o !== undefined },
 	isHTML: function(o) { return /^<.+/.test(Karma.trim(o).substring(0,3).toLowerCase()) },
+	
 	// browser detection
 	isIE: !!(window.ActiveXObject && !window.opera),
 	isIE6: !!(document.createElement('DIV').style.maxHeight === undefined),
@@ -252,15 +241,23 @@ Karma.extend(Karma, {
 	isWebkit: !!(!window.opera && !navigator.taintEnable && document.evaluate && document.getBoxObjectFor === undefined),
 	
 	// trim front/ending whitespaces and newlines so innerHTML won't go crazy
-	cleanHTML: function(HTML){ return HTML.replace(/^\s+[\n\r\t]+$/g, ''); },
+	cleanHTML: function(HTML){ return Karma.trim(HTML).replace(/[\n\r]/g, ' '); },
 	
 	// only works for array-like object like querynodelist
 	makeArray: function(o) {
+		if (Karma.isArray(o))
+			return o;
+
 		if (Karma.support.nodeListToArray)
 			return Array.prototype.slice.call(o);
 		
+		var ret = [];
+		if (!Karma.support.nodeListToArray && o.length) {
+			for(var i=0; i<o.length; i++)
+				ret.push(o[i]);
+		}
 		else {
-			var ret = [], length = 0;
+			var length = 0;
 			
 			for(var prop in o) {
 				ret[prop] = o[prop];
@@ -268,9 +265,8 @@ Karma.extend(Karma, {
 			}
 			
 			ret.length = length;
-
-			return ret;
 		}
+		return ret;
 	},
 	
 	// playing nice with others out there
@@ -312,10 +308,10 @@ Karma.extend(Karma, {
 		var init = function() {
 			if(Karma.isReady) return;
 			Karma.isReady = true;
-		
+			
 			// run all functions that are associated with ready
 			for(var i=0; i< Karma.readyFunctions.length; i++) {
-				try{ Karma.readyFunctions[i].call(window, Karma); } catch(e){}
+				Karma.readyFunctions[i]();
 			}
 		}
 		
@@ -335,10 +331,11 @@ Karma.extend(Karma, {
 	}
 });
 
-if(Karma.isIE && !Karma.isIE7){ try{ document.execCommand("BackgroundImageCache", false, true); }catch(e){}}
+//if(Karma.isIE && !Karma.isIE7){ try{ document.execCommand("BackgroundImageCache", false, true); }catch(e){}}
 
 Karma.temp = {
 	div: document.createElement('DIV'),
+	fragment: document.createDocumentFragment(),
 	
 	nodeListToArray: function(){
 		try { return Array.prototype.slice.call(document.forms, 0) instanceof Array; } catch (e) { return false; }
@@ -367,10 +364,10 @@ Karma.temp = {
 			}
 		}
 	}
-		
 }
 
 Karma.temp.event();
+
 
 // know the current browser's capabilities, we calculate here and use everywhere without recalculating
 Karma.support = {
@@ -390,11 +387,7 @@ Karma.support = {
 	contextMenu: Karma.temp.contextMenu(),
 	preventDefault: Karma.temp.event.IS_EVENT_PREVENTDEFAULT_PRESENT,
 	srcElement: Karma.temp.event.IS_EVENT_SRCELEMENT_PRESENT
-	
 };
-
-// clean up
-delete Karma.temp;
 
 // run the function to wait for onDOMready
 Karma.ready();

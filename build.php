@@ -8,7 +8,7 @@ header('Content-Type: text/html; charset=utf-8');
 ?>
 
 
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
@@ -81,8 +81,10 @@ else echo'<script language="javascript" src="Karma.js" type="text/javascript"></
 if($tests) echo '<script src="tests.js" type="text/javascript"></script>';
 ?>
 
-<script language="javascript">
-if (window.console && window.console.profile)console.profile('ya');
+<script type="text/javascript">
+//debug = 1;
+if (window.debug && window.console && window.console.profile)console.profile('JS');
+
 	var str = [];
 	for(var i = 0; i < 20; i++)
 		str.push("<table class='madediv'><tbody><tr><td><span>original child</span></td></tr></tbody></table>");
@@ -105,8 +107,34 @@ if (window.console && window.console.profile)console.profile('ya');
 	 });
  
 	 $('<div>asdf</div>').prependTo('span').css('color', '#0F0');
-	 $('div').bind('click', function(){ alert ('div '+$(this).html()); });
-if (window.console && window.console.profile)console.profileEnd('ya');	
+	 
+	 $('div').bind('click', function(){
+		 alert ('div '+$(this).html());
+	 });
+	 
+	 $(document.documentElement)
+		.animate({scrollTop: 900 },1000)
+		.animate({scrollTop: 200 },2000)
+		.animate({scrollTop: 1000 }, 500)
+		.animate({scrollTop: 300 }, 1500)
+		.animate({scrollTop: 600 }, 400);
+	
+	$('div:visible')
+		.animate({width: 900 }, 1000)
+		.animate({width: 50 }, 2000)
+		.animate({width: 600 }, 500)
+		.animate({width: 200 }, 1500)
+		.animate({width: 1000 }, 400);
+	
+if (window.debug && window.console && window.console.profile)console.profileEnd('JS');	
+
+$.get({
+	url: ['tests.js', 'tests2.js'],
+	callback: function(){
+		alert(test);
+		alert(test2);
+	}
+});
 </script>
 
 </body>

@@ -4,15 +4,11 @@ Karma.extend(Karma.fn, {
 		var els = Karma(o);
 		if(!this.length || !els.length) return this;
 		
-		var fragment;		
-		if (els.length > 1) {
-			fragment = Karma.temp.fragment.cloneNode(false);
+		var fragment = Karma.temp.fragment.cloneNode(false);
+		//var fragment = document.createDocumentFragment();
 			
-			for (var i=0; i< els.length; i++)
-				fragment.appendChild(els[i]);
-		}
-		else 
-			fragment = els[0];
+		for (var i=0; i< els.length; i++)
+			fragment.appendChild(els[i]);
 		
 		if (Karma.isHTML(o)) {
 			for (var i=0; i< this.length; i++) 
@@ -30,27 +26,20 @@ Karma.extend(Karma.fn, {
 		var els = Karma(o);
 		if(!this.length || !els.length) return this;
 		
-		var fragment;		
-		if (this.length > 1) {
-			fragment = Karma.temp.fragment.cloneNode(false);
+		var fragment = Karma.temp.fragment.cloneNode(false);
+		//document.createDocumentFragment();
 			
-			for (var i=0; i< this.length; i++)
-				fragment.appendChild(this[i]);
-		}
-		else 
-			fragment = this[0];
+		for (var i=0; i< this.length; i++)
+			fragment.appendChild(this[i]);
 			
 		if (Karma.isHTML(this.query)) {
-			var cloned = [];
+			var cloned = []; cloned.length=0;
 			for (var j=0; j< els.length; j++) {
 				var newClones = fragment.cloneNode(true);
-				
-				if(newClones.nodeType == 11)
-					for(var i=0; i < newClones.childNodes.length; i++)
-						cloned.push(newClones.childNodes[i]);
-				else
-					cloned.push(newClones);
-					
+
+				for(var i=0; i < newClones.childNodes.length; i++)
+					cloned.push(newClones.childNodes[i]);
+	
 				els[j].appendChild(newClones);
 			}
 			return Karma(cloned);
@@ -65,16 +54,11 @@ Karma.extend(Karma.fn, {
 		var els = Karma(o);
 		if(!this.length || !els.length) return this;
 		
-		var fragment;		
-		if (els.length > 1) {
-			fragment = Karma.temp.fragment.cloneNode(false);
+		var fragment = Karma.temp.fragment.cloneNode(false);
+		//var fragment = document.createDocumentFragment();
 		
-			for (var i=0; i< els.length; i++)
-				fragment.appendChild(els[i]);
-		}
-		else
-			fragment = els[0];
-			
+		for (var i=0; i< els.length; i++)
+			fragment.appendChild(els[i]);			
 		
 		if (Karma.isHTML(o)) {
 			for (var i=0; i< this.length; i++)
@@ -90,27 +74,20 @@ Karma.extend(Karma.fn, {
 		var els = Karma(o);
 		if(!this.length || !els.length) return this;
 		
-		var fragment;		
-		if (this.length > 1) {
-			fragment = Karma.temp.fragment.cloneNode(false);
+		var fragment = Karma.temp.fragment.cloneNode(false);
+		//var fragment = document.createDocumentFragment();
 		
-			for (var i=0; i< this.length; i++)
-				fragment.appendChild(this[i]);
-		}
-		else
-			fragment = this[0];
+		for (var i=0; i< this.length; i++)
+			fragment.appendChild(this[i]);
 		
 		if (Karma.isHTML(this.query)) {
 			var cloned = [];
 			for (var i=0; i< els.length; i++) {
 				var newClones = fragment.cloneNode(true);
 				
-				if(newClones.nodeType == 11)
-					for(var j=0; j < newClones.childNodes.length; j++)
-						cloned.push(newClones.childNodes[j]);
-				else
-					cloned.push(newClones);
-				
+				for(var j=0; j < newClones.childNodes.length; j++)
+					cloned.push(newClones.childNodes[j]);
+			
 				els[i].insertBefore(newClones, els[i].firstChild);
 			}
 
@@ -126,14 +103,11 @@ Karma.extend(Karma.fn, {
 		var els = Karma(o);
 		if(!this.length || !els.length) return this;
 		
-		var fragment;
-		if(els.length > 1){
-			fragment = Karma.temp.fragment.cloneNode(false);
-			for (var i=0; i< els.length; i++)
-				fragment.appendChild(els[i]);
-		}
-		else
-			fragment = els[0];
+		var fragment = Karma.temp.fragment.cloneNode(false);
+		//var fragment = document.createDocumentFragment();
+		
+		for (var i=0; i< els.length; i++)
+			fragment.appendChild(els[i]);	
 		
 		if (Karma.isHTML(o)) {
 			for (var i=0; i< this.length; i++) 
@@ -149,25 +123,19 @@ Karma.extend(Karma.fn, {
 		var els = Karma(o);
 		if(!this.length || !els.length) return this;
 		
-		var fragment;
-		if(this.length > 1){
-			fragment = Karma.temp.fragment.cloneNode(false);
-			for (var i=0; i< this.length; i++)
-				fragment.appendChild(this[i]);
-		}
-		else
-			fragment = this[0];
+		var fragment = Karma.temp.fragment.cloneNode(false);
+		//var fragment = document.createDocumentFragment();
+		
+		for (var i=0; i< this.length; i++)
+			fragment.appendChild(this[i]);
 		
 		if (Karma.isHTML(this.query)) {
 			var cloned = [];
 			for (var i=0; i< els.length; i++) {
 				var newClones = fragment.cloneNode(true);
 				
-				if(newClones.nodeType == 11)
-					for(var j=0; j < newClones.childNodes.length; j++)
-						cloned.push(newClones.childNodes[j]);
-				else
-					cloned.push(newClones);
+				for(var j=0; j < newClones.childNodes.length; j++)
+					cloned.push(newClones.childNodes[j]);
 				
 				els[i].parentNode.insertBefore(newClones, els[i]);
 			}
@@ -184,14 +152,11 @@ Karma.extend(Karma.fn, {
 		var els = Karma(o);
 		if(!this.length || !els.length) return this;
 		
-		var fragment;
-		if(els.length > 1){
-			fragment = Karma.temp.fragment.cloneNode(false);
-			for (var i=0; i< els.length; i++)
-				fragment.appendChild(els[i]);
-		}
-		else
-			fragment = els[0];
+		var fragment = Karma.temp.fragment.cloneNode(false);
+		//var fragment = document.createDocumentFragment();
+		
+		for (var i=0; i< els.length; i++)
+			fragment.appendChild(els[i]);	
 			
 		if (Karma.isHTML(o)) {
 			for (var i=0; i< this.length; i++) {
@@ -212,26 +177,19 @@ Karma.extend(Karma.fn, {
 		var els = Karma(o);
 		if(!this.length || !els.length) return this;
 		
-		var fragment;
-		if(this.length > 1){
-			fragment = Karma.temp.fragment.cloneNode(false);
+		var fragment = Karma.temp.fragment.cloneNode(false);
+		//var fragment = document.createDocumentFragment();
 		
-			for (var i=0; i< this.length; i++)
-				fragment.appendChild(this[i]);
-		}
-		else
-			fragment = this[0];
+		for (var i=0; i< this.length; i++)
+			fragment.appendChild(this[i]);
 		
 		if (Karma.isHTML(this.query)) {
 			var cloned = [];
 			for (var i=0; i< els.length; i++) {
 				var newClones = fragment.cloneNode(true);
 				
-				if(newClones.nodeType == 11)
-					for(var j=0; j < newClones.childNodes.length; j++)
-						cloned.push(newClones.childNodes[j]);
-				else
-					cloned.push(newClones);
+				for(var j=0; j < newClones.childNodes.length; j++)
+					cloned.push(newClones.childNodes[j]);
 					
 				els[i].nextSibling ? 
 					els[i].parentNode.insertBefore(newClones, els[i].nextSibling):
@@ -247,22 +205,22 @@ Karma.extend(Karma.fn, {
 		return this;
 	},
 	
-	// removes all events attached including current node
+	// 0 and removes all events attached including current node
 	empty: function() {
 		for (var i=0; i< this.length; i++) {
 			// don't bitch about this, won't break future browser compatibility
-			if (Karma.isGecko) {
-				var parent = Karma.temp.fragment.cloneNode(false);
+			if (Karma.isWebkit || Karma.isIE || Karma.isOpera) {
+				this[i].innerHTML = '';
+			}
+			else {
+				var parent = document.createElement('DIV');
 				var newEl = this[i].cloneNode(false);
 				
 				parent.appendChild(newEl);
+				newEl.innerHTML = '';
 				
 				this[i].parentNode.replaceChild(newEl, this[i]);
 				this[i] = newEl;
-			}
-			
-			else {
-				this[i].innerHTML = '';
 			}
 		}
 		return this;
@@ -298,7 +256,9 @@ Karma.extend(Karma.fn, {
 	},
 	
 	remove: function(query){
-		var result = Karma.isString(query) ? Karma.filter(query, this) : this;
+		var result = this;
+		if (Karma.isString(query))
+			result = Karma.filter(query, this);
 		
 		for (var i=0; i< result.length; i++)
 			result[i].parentNode.removeChild(result[i]);
@@ -313,7 +273,7 @@ Karma.extend(Karma.fn, {
 		for(var i=0;i<$.length;i++) {
 			if (Karma.support.outerHTML) {
 				var string = $[i].outerHTML;
-				cloned.push(Karma.HTMLtoNode(string)[0]);
+				cloned.push(Karma(string)[0]);
 			}
 			else 
 				cloned.push($[i].cloneNode(true));

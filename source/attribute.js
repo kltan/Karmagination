@@ -1,10 +1,6 @@
 Karma.extend(Karma.fn, {
 			 
 	attr: function(prop, val){
-		// document.expando = true;
-		
-		// does not support events
-		// setting one property
 		if(Karma.isString(prop) && (Karma.isValue(val))) {
 			for(var i=0; i<this.length; i++) {
 				if (/id|href|name|dir|title/.test(prop))
@@ -16,7 +12,6 @@ Karma.extend(Karma.fn, {
 				else 
 					this[i].setAttribute(prop, val);
 			}
-					
 			return this;
 		}
 		// setting multiple property
@@ -37,12 +32,36 @@ Karma.extend(Karma.fn, {
 			else if (prop==="style" && Karma.support.cssText) 
 				this[i].style.cssText = '';
 
-			this[i].removeAttribute(prop);
+			try { this[i].removeAttribute(prop); } catch(e){};
 		}
 			
 		return this;
 	},
 	
+	data: function(key, value) {
+		// key can be number or string
+		// value can be anything except for undefined
+		if(Karma.isValue(key) && Karma.isDefined(value)) {
+			for (var i=0; i< this.length; i++) {
+				this[i].KarmaData = this[i].KarmaData || {};
+				this[i].KarmaData[key] = value;
+			}
+			return this;
+		}
+
+		return Karma.isDefined(this[0].KarmaData[key]) ? this[0].KarmaData[key] : null;
+	},
+	
+	removeData: function(key) {
+		if(Karma.isValue(key)) {
+			for (var i=0; i< this.length; i++) {
+				if (this[i].KarmaData)
+					this[i].KarmaData[key] = null;
+			}
+		}
+		return this;
+	},
+
 	addClass: function(str){
 		for(var i=0; i< this.length; i++)
 			this[i].className += ' ' + str; // browser will automatically remove duplicates and trim
@@ -51,24 +70,24 @@ Karma.extend(Karma.fn, {
 	},
 	
 	removeClass: function(str) {
-		for(var i=0; i< this.length; i++)
-			this[i].className = this[i].className.replace(str, '');
-			
+		if (Karma.isString(str)) {
+			for(var i=0; i< this.length; i++)
+				this[i].className = this[i].className.replace(str, '');
+		}
 		return this;
 	},
 	
 	hasClass: function(str) {
-		return this.length ? !!(this[0].className.indexOf(str) >= 0): false;
+		str = ' ' + str + ' ';
+		return (this.length) ? !(' ' + this[0].className + ' ').indexOf(str) : false;
 	},
 	
 	toggleClass: function(str) {
+		str = ' ' + str + ' ';
 		for(var i=0; i< this.length; i++) {
-			if(this[i].className.indexOf(str) >= 0)
-				this[i].className = this[i].className.replace(str, '');
-			else
-				this[i].className += str;
+			var classname = ' ' + this[i].className + ' ';
+			this[i].className = !classname.indexOf(str) ? classname.replace(str, '') : classname += str;
 		}
-			
 		return this;
 	},
 	
@@ -76,7 +95,7 @@ Karma.extend(Karma.fn, {
 		// setting values
 		if(Karma.isValue(str)) { // if the str passed is a value
 			for(var i=0; i< this.length; i++)
-				if (Karma.isString(this[i].value)) // determine if the value property exists in the current element
+				if (Karma.isDefined(this[i].value)) // determine if the value property exists in the current element
 					this[i].value = str;
 
 			return this;

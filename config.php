@@ -1,7 +1,7 @@
 <?
 // Settings for yShort
 
-$version = '0.1';
+$version = '0.3';
 $time = date('Y-m-d h:i:s A', time());
 
 $source = array(
@@ -10,13 +10,15 @@ $source = array(
 	'source/traverse.js',
 	'source/attribute.js',
 	'source/ajax.js',
+	'source/get.js',
 	'source/event.js',
 	'source/css.js',
 	'source/fx.js',
 	'source/utilities.js',
+	'source/class.js',
 	'source/sizzle.js',
 	//'source/sly.js',
-	'source/selector.js'
+	'source/selector.js',
 );
 
 $jQuery = true;

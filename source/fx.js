@@ -2,7 +2,7 @@ Karma.extend(Karma.fn, {
 			 
 	stop: function(){
 		for(var i=0; i<this.length; i++)
-			if(this[i]['KarmaFX']) delete this[i]['KarmaFX'];
+			if(this[i].KarmaFX) this[i].KarmaFX = null;
 		
 		return this;
 	},
@@ -11,7 +11,7 @@ Karma.extend(Karma.fn, {
 		if (!Karma.isObject(attributes) || !this.length) return this;
 		
 		// do this for scoping issues with internal functions
-		var $$  = this;
+		var els  = this;
 		
 		// default values
 		duration = duration || 500;
@@ -20,61 +20,89 @@ Karma.extend(Karma.fn, {
 		
 		for(var i=0; i<this.length; i++) {
 			// setup initial values
-			this[i]['KarmaFX'] = this[i]['KarmaFX'] || [];
-			this[i]['KarmaFX']['animating'] = true;
+			els[i].KarmaFX = els[i].KarmaFX || [];
 			
-			var FX = {};
-			FX['start'] = {};
-			FX['end'] = {};
-			FX['duration'] = duration;
-			FX['callback'] = callback;
-			FX['easing'] = easing;
+			var FX = {
+				start: {},
+				end: {},
+				duration: duration,
+				callback: callback,
+				easing: easing
+			};
+			
+			var $curEl = Karma(els[i]);
 			
 			// get starting/ending attributes
 			// we need to calculate end cause we are converting values like em, etc to px
 			for (var prop in attributes) {
-				// convert all numerical to pixels
-				if (Karma.isNumber(attributes[prop])) attributes[prop] += 'px';
 				// get the current unanimated attribute
-				FX['start'][prop] = Karma(this[i]).getStyle(prop);
-				// set the final attribute and try to get the value usually in px
-				FX['end'][prop] = Karma(this[i]).setStyle(prop, attributes[prop]).getStyle(prop);
-				// revert to start value
-				Karma(this[i]).setStyle(prop, FX['start'][prop]);
-			}
-			
-			this[i]['KarmaFX'].push(FX); // pushing and increase counter
+				FX.start[prop] = $curEl.getStyle(prop);
+				
+				// set the final attribute if they are in NUMBERS or PX
+				if (Karma.isNumber(attributes[prop]))
+					FX.end[prop] = attributes[prop];
+				
+				// else we have to detemine it
+				else {
+					// these are strings
+					var val = Karma.trim(attributes[prop]);
+					
+					if(/opacity|scrollLeft|scrollTop/.test(prop)) {
+						FX.end[prop] = (FX.start[prop] - 0) + parseFloat(attributes[prop]);
+					}
 
+					else if (val.indexOf('+') === 0)
+						FX.end[prop] = (FX.start[prop] - 0) + ($curEl.setStyle(prop, val.substr(1)).getStyle(prop) - 0); // using - 0 to cast into numbers
+
+					else if (val.indexOf('-') === 0)
+						FX.end[prop] = FX.start[prop] - $curEl.setStyle(prop, val.substr(1)).getStyle(prop);
+
+					else if (attributes[prop].indexOf('px') > 0)
+						FX.end[prop] = attributes[prop];
+
+					else 
+						FX.end[prop] = $curEl.setStyle(prop, attributes[prop]).getStyle(prop);
+				
+					$curEl.setStyle(prop, FX.start[prop]); // revert to start value
+				}
+			}
+			els[i].KarmaFX.push(FX); // pushing and increase counter
 		}
 		
 		// if first iteration in a an animation que then run, the function will look for subsequent queues that have been added after it has been run
-		if (this[0]['KarmaFX'].length === 1) {
-			var iter = 0;
-			var startTimer = (new Date()).getTime();
+		if (this[0].KarmaFX.length === 1) {
+			var iter = 0,
+				startTimer = (new Date()).getTime(),
+				endTimer = startTimer + els[0].KarmaFX[iter].duration,
+				timer;
+			
 		
 			// start looping and setting value at every frame that we arrive
-			var timer = setInterval(function(){
+			timer = setInterval(function(){
 				var curTime = (new Date()).getTime();
 				
 				// a frame value between start and end
-				if(curTime < (startTimer + duration)){
-					if($$[0]['KarmaFX'])
-						setCurrentFrameAttr(curTime - startTimer, $$[0]['KarmaFX'][iter]['end']);
+				if(curTime < (endTimer)){
+					if(els[0].KarmaFX)
+						setCurrentFrameAttr(curTime - startTimer, els[0].KarmaFX[iter].end);
 				}
 				// last frame
 				else { 
 					completeAnimation();
 				}
-			}, 10);
+			}, 20);
 			
 			var setCurrentFrameAttr = function(elapsed, attributes){
-				for(var i=0; i<$$.length; i++) {
-					if ($$[i]['KarmaFX'] && $$[i]['KarmaFX']['animating'])
+				for(var i=0; i<els.length; i++) {
+					if (els[i].KarmaFX)
 						for (var prop in attributes) {
-							// using the current easing function, put in (start value, end value, elapsed time, and the total duration)
-							var curval = $$[i]['KarmaFX'][iter]['easing'](parseInt($$[i]['KarmaFX'][iter]['start'][prop]), parseInt($$[i]['KarmaFX'][iter]['end'][prop]), elapsed, $$[i]['KarmaFX'][iter]['duration']);
-							if (prop != 'opacity') curval += 'px';
-							Karma($$[i]).setStyle(prop, curval);
+							var startVal = (prop == 'opacity') ? parseFloat(els[i].KarmaFX[iter].start[prop]) : parseInt(els[i].KarmaFX[iter].start[prop]),
+								endVal = (prop == 'opacity') ? parseFloat(els[i].KarmaFX[iter].end[prop]) : parseInt(els[i].KarmaFX[iter].end[prop]),
+								duration = els[0].KarmaFX[iter].duration,
+								// using the current easing function, put in (start value, end value, elapsed time, and the total duration)
+								curval = els[i].KarmaFX[iter].easing(startVal, endVal, elapsed, duration);
+							
+							Karma(els[i]).setStyle(prop, curval);
 						}
 				}
 			}
@@ -83,31 +111,33 @@ Karma.extend(Karma.fn, {
 				clearInterval(timer);
 				
 				// set all the css properties to the end attributes
-				for(var i=0; i<$$.length; i++) {
-					if($$[0]['KarmaFX'])
-						$$.css($$[i]['KarmaFX'][iter]['end']);
+				for(var i=0; i<els.length; i++) {
+					if(els[0].KarmaFX)
+						Karma(els[i]).css(els[i].KarmaFX[iter].end);
 				}
 				
 				// if there's a callback, call now with scope as window
-				if ($$[0]['KarmaFX'] && $$[0]['KarmaFX'][iter]['callback']) $$[0]['KarmaFX'][iter].callback.call(window);
+				if (els[0].KarmaFX && els[0].KarmaFX[iter].callback) els[0].KarmaFX[iter].callback(Karma.makeArray(els));
 				
 				// up the next item in the queue
 				iter++;
 				
 				// if there's no next item				
-				if($$[0]['KarmaFX'] && !$$[0]['KarmaFX'][iter]) {
-					for(var i=0; i<$$.length; i++) {
-						if($$[i]['KarmaFX']); delete $$[i]['KarmaFX'];
+				if(els[0].KarmaFX && !els[0].KarmaFX[iter]) {
+					for(var i=0; i<els.length; i++) {
+						if(els[i].KarmaFX); els[i].KarmaFX = null;
 					}
 				}
+				// start the next animation queue in stack
 				else {
-					var startTimer = (new Date()).getTime();
+					var startTimer = (new Date()).getTime(),
+						endTimer = startTimer + els[0].KarmaFX[iter].duration;
 					
 					// get current style
-					for(var i=0; i<$$.length; i++) {
-						if ($$[i]['KarmaFX'])
-							for (var prop in $$[i]['KarmaFX'][iter]['end']) {
-								$$[i]['KarmaFX'][iter]['start'][prop] = Karma($$[i]).getStyle(prop);
+					for(var i=0; i<els.length; i++) {
+						if (els[i].KarmaFX)
+							for (var prop in els[i].KarmaFX[iter].end) {
+								els[i].KarmaFX[iter].start[prop] = els[i].KarmaFX[iter-1].end[prop] || Karma(els[i]).getStyle(prop);
 							}
 					}
 					
@@ -115,15 +145,15 @@ Karma.extend(Karma.fn, {
 						var curTime = (new Date()).getTime();
 						
 						// a frame value between start and end
-						if(curTime < (startTimer + duration)){
-							if($$[0]['KarmaFX'])
-								setCurrentFrameAttr(curTime - startTimer, $$[0]['KarmaFX'][iter]['end']);
+						if(curTime < (endTimer)){
+							if(els[0].KarmaFX)
+								setCurrentFrameAttr(curTime - startTimer, els[0].KarmaFX[iter].end);
 						}
 						// last frame
 						else { 
 							completeAnimation();
 						}
-					}, 10);
+					}, 20);
 					
 				}
 				
@@ -141,4 +171,5 @@ Karma.easing = {
 		return  (end - start)*elapsed/duration + start;
 	}
 };
+
 Karma.easing.global = Karma.easing.linear;

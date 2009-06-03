@@ -22,24 +22,24 @@ Karma.extend(Karma, {
 	},
 	
 	trim: function(str){
+		/* Thanks to Steven Levithan's benchmark on string trimming */
 		// unicode friendly string trim for older browsers that don't catch all whitespaces
 		return str.replace(/^[\s\xA0]+/, '').replace(/[\s\xA0]+$/, ''); 
 	},
 			 
 	grep: function(o, fn) {
-		var arry = [];
+		var array = [];
 		// Go through the array, only saving the items that pass the validator function
 		for ( var i = 0; i < o.length; i++ )
-			if (!fn.call(o[i], o[i], i) === false)
-				arry.push( o[i] );
+			if (!fn(o[i], i) === false)
+				array.push( o[i] );
 
-		return arry;
+		return array;
 	},
 
 	inArray: function(el, o){
-		// prevent ie's window == document problem
-		for ( var i = 0; i < o.length; i++ )
-			if ( o[i] === el )
+		for (var i = 0; i < o.length; i++ )
+			if (o[i] === el)
 				return i;
 		return -1;
 	},
@@ -47,7 +47,7 @@ Karma.extend(Karma, {
 	map: function(o, fn) {
 		var array = [];
 		for ( var i = 0; i < o.length; i++ ) 
-			array.push(fn.call(o[i], i));
+			array.push(fn(o[i], i));
 
 		return array;
 	},
@@ -57,4 +57,3 @@ Karma.extend(Karma, {
 		return Array.prototype.concat.apply([], arguments);
 	}
 });
-

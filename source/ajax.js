@@ -6,6 +6,7 @@ Karma.extend(Karma, {
 			type: 'GET',
 			data: '',
 			url: '',
+			contentType: null,
 			loading: function(){},
 			success: function(){},
 			error: function(){}
@@ -13,18 +14,17 @@ Karma.extend(Karma, {
 	
 		var oXHR = window.XMLHttpRequest? new XMLHttpRequest(): new ActiveXObject("Microsoft.XMLHTTP");
 		
-		if (oXHR === null || oXHR === undefined)
-			return;
+		if (oXHR === null || oXHR === undefined) return;
 		
 		oXHR.onreadystatechange=function(){
 			try {
 				if (oXHR.readyState==4 && !o.successDone){
-					o.success.call(window, oXHR.responseText);
+					o.success(oXHR.responseText);
 					o.successDone = true;
 				}
 				
 				if (oXHR.status!=200 && !o.errorDone) {
-					o.error.call(window, oXHR.responseText);
+					o.error(oXHR.responseText);
 					o.successDone = true;
 					o.errorDone = true;
 				}
@@ -34,6 +34,8 @@ Karma.extend(Karma, {
 		
 		o.loading();
 		oXHR.open(o.type, o.url, true);
+		if(o.contentType)
+			oXHR.setRequestHeader("Content-Type", o.contentType);
 		oXHR.send(null);
 	}
 

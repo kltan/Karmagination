@@ -24,9 +24,8 @@ Karma.extend(Karma.fn, {
 				else if (ns.length == 2)
 					$.KarmaEvent[ns[0]][ns[1]] = fn;
 
-				try {
-					$['on'+ns[0]] = Karma.event.caller;
-				} catch(e){};
+				try { $['on'+ns[0]] = Karma.event.caller; } 
+				finally{ $ = null; };
 			}
 		}
 		Karma.event.functions.push(fn);
@@ -63,7 +62,7 @@ Karma.extend(Karma.fn, {
 	
 	
 	
-	fire: function(eventName) {
+	simulate: function(eventName) {
 		try {
 			for(var i=0; i<this.length; i++)
 				var element = this[i];
@@ -81,7 +80,6 @@ Karma.extend(Karma.fn, {
 					var event = document.createEvent(curEvent.type);
 					curEvent.init(event, {});
 					element.dispatchEvent(event);
-					return true;
 				}
 			}
 			// m$, wow easier! one of the odd moments in javascript
@@ -95,31 +93,43 @@ Karma.extend(Karma.fn, {
 	
 				element.fireEvent("on"+eventName, event);
 				
-				return true;
 			}
 
-		}
-		catch (e){ return false; }
+		} catch(e){};
+		
 		return this;
-	},
-	
+	}
+	/*
+	,
+	// preventDefault and stopPropagation is not complete for live yet
+	// need help on this
 	live: function(str, fn){
-		Karma(document).on(str, function(e){
+		var query = this.query;
+
+		return Karma().stack(this).on(str, function(e){
+			
 			var ancestors = [], cur = e.target;
-			while(cur !== window) {
+			while(cur !== document) {
 				ancestors.push(cur);
 				cur = cur.parentNode;
 			}
 			
-			if(Karma(cur).filter(this.query).length > 0){
-				fn.call(e.target, e);				
+			var $ancestors = Karma(ancestors).filter(query);
+			console.log(cur);
+			console.log(query);
+			console.log($ancestors[0]);
+			if($ancestors.length > 0){
+				if(fn.call($ancestors[0], e)=== false) {
+					e.preventDefault();
+					e.stopPropagation();
+				}
 			}
 		});	
 	},
 	
 	die: function(str, fn){
-		Karma().un(str, fn);
-	}
+		return Karma().un(str, fn);
+	}*/
 });
 
 Karma.extend(Karma.fn, {
@@ -275,8 +285,8 @@ if(Karma.support.createEvent) {
 Karma.event = Karma.event || {};
 Karma.event.functions = [];
 Karma.event.caller = function(e) {
-	cur = this;
 	e = window.event || e;
+	if(!e.currentTarget) e.currentTarget = this;
 	e.target ? e.srcElement = e.target: e.target = e.srcElement;
 
 	if(!e.stopPropagation && window.event) 
@@ -284,11 +294,10 @@ Karma.event.caller = function(e) {
 	
 	if(!Karma.support.preventDefault && window.event)
 		e.preventDefault = function(){ window.event.returnValue = false; };
-		
 	
-	if(cur && cur.KarmaEvent && cur.KarmaEvent[e.type]) {
-		for(var functions in cur.KarmaEvent[e.type]) {
-			if(cur.KarmaEvent[e.type][functions].call(cur, e) === false) {
+	if(e.currentTarget && e.currentTarget.KarmaEvent && e.currentTarget.KarmaEvent[e.type]) {
+		for(var functions in e.currentTarget.KarmaEvent[e.type]) {
+			if(e.currentTarget.KarmaEvent[e.type][functions].call(e.currentTarget, e) === false) {
 				e.stopPropagation();
 				e.preventDefault();	
 			}
@@ -297,7 +306,11 @@ Karma.event.caller = function(e) {
 }
 
 // cleaning up all functions that have been attached to a node
+// need help on this
+
 Karma(window).on('unload', function(){
+	for (var i=0; i<Karma.event.functions.length; i++) {
+		Karma.event.functions[i] = null;
+	}
 	Karma.event.caller = null;
-	delete Karma.event.caller;
 });

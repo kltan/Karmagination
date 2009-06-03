@@ -100,7 +100,8 @@ Karma.extend(Karma.fn, {
 	},
 	
 	index: function(o){
-		return Karma.inArray(Karma(o)[0], this);
+		var el = (o.nodeType) ? o : Karma(o)[0];
+		return Karma.inArray(el, this);
 	},
 	
 	slice: function(start, end){
@@ -112,9 +113,9 @@ Karma.extend(Karma.fn, {
 		return this[num] ? Karma(this[num]).stack(this): Karma([]).stack(this);
 	},
 	
-	// get elements as array or get individual element, return the array
-	get: function(num) {
-		return (num === undefined)? Array.prototype.slice.call(this): (this.length && this[num])? this[num]: null;
+	// get elements as array, return the array
+	get: function() {
+		return this.length ? Karma.makeArray(this) : null;
 	},
 	
 	// adding elements
@@ -124,7 +125,14 @@ Karma.extend(Karma.fn, {
 	
 	each: function(fn){
 		for (var i=0; i< this.length; i++)
-			fn.apply(this[i], arguments);
+			fn(this[i]);
+		return this;
+	},
+	
+	map: function(fn) {
+		var ret = [];
+		for (var i=0; i< this.length; i++)
+			ret.push(fn(this[i]));
 		return this;
 	},
 
@@ -133,18 +141,18 @@ Karma.extend(Karma.fn, {
 		for(var i=0; i<this.length; i++)
 			ret = Karma.merge(ret, Karma.selector(query, this[i]));
 		
-		return ret.length? Karma(ret).stack(this): Karma([]).stack(this);
+		return ret.length? Karma(ret).stack(this) : Karma([]).stack(this);
 	},
 	
 	filter: function(query) {
-		return query? Karma(Karma.filter(query, this)).stack(this): this;
+		return query ? Karma(Karma.filter(query, this)).stack(this) : this;
 	},
 	
 	is: function(query) {
-		return query? !!Karma.filter(query, this).length: false;
+		return query ? !!Karma.filter(query, this).length : false;
 	},
 	
 	not: function(query) {
-		return query? Karma(Karma.selector(':not('+query+')', this)).stack(this) : this;
+		return query ? Karma(Karma.selector(':not('+query+')', this)).stack(this) : this;
 	}
 });

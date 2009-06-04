@@ -22,7 +22,7 @@ $source = array(
 );
 
 $jQuery = true;
-$jQuery = false;
+//$jQuery = false;
 
 $tests = true;
 $tests = false;

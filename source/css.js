@@ -16,18 +16,19 @@ Karma.extend(Karma.fn, {
 	setStyle: function(property, value){
 		if(!this.length) return this;
 
-		if (property === 'opacity') {
+		if (property == 'opacity') {
 			for (var i=0; i < this.length; i++) {
-				// if we have perfect opacity, better to remove it to restore the antialiasing ablity of IE
-				if(Karma.support.filter) this[i].style.filter = (parseInt(value) == 1) ? '' : 'alpha(opacity=' + (value * 100) + ')';
-				else if (Karma.support.opacity) this[i].style.opacity = value;
+				// webkit and opera support filter, which is BS
+				if(Karma.support.opacity) this[i].style.opacity = value;
+				// if we have full opacity, better to remove it to restore the antialiasing ablity of IE
+				else if(Karma.support.filter) this[i].style.filter = (parseInt(value) == 1) ? '' : 'alpha(opacity=' + (value * 100) + ')';
+				
 			}
+			
 			return this;
 		}
 		
 		if (property === 'scrollTop' || property === 'scrollLeft') {
-			//alert (property + ' ' + parseInt(value));
-		//document.body[property] = parseInt(value);
 			for (var i=0; i < this.length; i++) {
 				if (this[i]===document.documentElement || this[i]===document || this[i]===document.body || this[i]===window) {
 					document.body[property] = value;
@@ -39,12 +40,11 @@ Karma.extend(Karma.fn, {
 			return this;
 		}
 		
-		if (property === 'float') {
+		if (property === 'float')
 			property = Karma.support.styleFloat ? 'styleFloat' : 'cssFloat';
-		}
 		
-		/*else
-			property = Karma.camelCase(property);*/
+		// I did some profiling, camelCase is dead evil and expensive
+		// else property = Karma.camelCase(property);
 		
 		// convert integers to strings;
 		if (Karma.isNumber(value)) value += 'px';
@@ -69,10 +69,21 @@ Karma.extend(Karma.fn, {
 			try { var opacity = this[0].filters('alpha').opacity; }	catch(e){ return 1; }
 			return opacity/100;
 		}
+		else if (property == 'borderWidth') {
+			property = 'borderTopWidth';
+		}
 		
-		/*else
-			property = Karma.camelCase(property);*/
-			
+		else if (property == 'margin') {
+			property = 'marginTop';
+		}
+		
+		else if (property == 'padding') {
+			property = 'paddingTop';
+		}
+		
+		// I did some profiling, camelCase is dead evil and expensive
+		// else property = Karma.camelCase(property);
+		
 		if (this[0].currentStyle) 
 			return this[0].currentStyle[property];
 			
@@ -84,6 +95,7 @@ Karma.extend(Karma.fn, {
 			computed = Karma.rgbToHex(rgb);
 		}
 		
+		// return Karma.isString(computed) ? computed.length > 0 ? computed : 0 : computed;
 		return computed;
 	},
 	
@@ -133,8 +145,8 @@ Karma.extend(Karma, {
 			hex.push((bit.length == 1) ? '0' + bit : bit);
 		}
 		return '#' + hex.join('');
-	},
-	/*
+	}/*,
+	
 	camelCase: function(property){
 		return property.replace(/\-(\w)/g, function(all, letter){ return letter.toUpperCase();	});
 	}*/

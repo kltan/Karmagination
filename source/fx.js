@@ -37,7 +37,9 @@ Karma.extend(Karma.fn, {
 			for (var prop in attributes) {
 				// get the current unanimated attribute
 				FX.start[prop] = $curEl.getStyle(prop);
-				
+				if (Karma.isString(FX.start[prop]) && FX.start[prop].indexOf('px') > 0) {
+					FX.start[prop] = parseInt(FX.start[prop]);
+				}
 				// set the final attribute if they are in NUMBERS or PX
 				if (Karma.isNumber(attributes[prop]))
 					FX.end[prop] = attributes[prop];
@@ -52,13 +54,15 @@ Karma.extend(Karma.fn, {
 					}
 
 					else if (val.indexOf('+') === 0)
-						FX.end[prop] = (FX.start[prop] - 0) + ($curEl.setStyle(prop, val.substr(1)).getStyle(prop) - 0); // using - 0 to cast into numbers
+						FX.end[prop] = parseInt(FX.start[prop]) + parseInt($curEl.setStyle(prop, val.substr(1)).getStyle(prop)); // using - 0 to cast into numbers
+
 
 					else if (val.indexOf('-') === 0)
-						FX.end[prop] = FX.start[prop] - $curEl.setStyle(prop, val.substr(1)).getStyle(prop);
+						FX.end[prop] = parseInt(FX.start[prop]) - parseInt($curEl.setStyle(prop, val.substr(1)).getStyle(prop));
 
-					else if (attributes[prop].indexOf('px') > 0)
+					else if (attributes[prop].indexOf('px') > 0) {
 						FX.end[prop] = attributes[prop];
+					}
 
 					else 
 						FX.end[prop] = $curEl.setStyle(prop, attributes[prop]).getStyle(prop);
@@ -73,7 +77,7 @@ Karma.extend(Karma.fn, {
 		if (this[0].KarmaFX.length === 1) {
 			var iter = 0,
 				startTimer = (new Date()).getTime(),
-				endTimer = startTimer + els[0].KarmaFX[iter].duration,
+				endTimer = els[0].KarmaFX ? startTimer + els[0].KarmaFX[iter].duration : 0,
 				timer;
 			
 		
@@ -101,7 +105,7 @@ Karma.extend(Karma.fn, {
 								duration = els[0].KarmaFX[iter].duration,
 								// using the current easing function, put in (start value, end value, elapsed time, and the total duration)
 								curval = els[i].KarmaFX[iter].easing(startVal, endVal, elapsed, duration);
-							
+
 							Karma(els[i]).setStyle(prop, curval);
 						}
 				}
@@ -131,7 +135,7 @@ Karma.extend(Karma.fn, {
 				// start the next animation queue in stack
 				else {
 					var startTimer = (new Date()).getTime(),
-						endTimer = startTimer + els[0].KarmaFX[iter].duration;
+						endTimer = els[0].KarmaFX ? startTimer + els[0].KarmaFX[iter].duration : 0;
 					
 					// get current style
 					for(var i=0; i<els.length; i++) {
@@ -156,7 +160,6 @@ Karma.extend(Karma.fn, {
 					}, 20);
 					
 				}
-				
 				
 			}
 				

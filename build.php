@@ -98,19 +98,27 @@ if (window.debug && window.console && window.console.profile)console.profile('JS
 	 .after('<td>after origin child</td><td>after after origin child</td>');
 	 
 
-	 $('td').bind('click', function(){
-		 alert ('td '+$(this).html());
-	 });
+	$('td').bind('click', function(e, el){
+		alert ('td '+$(el).html());
+	});
 
-	 $('span').bind('click', function(e){
-		alert ('span '+$(this).html());
-	 });
+	$('span').bind('click', function(e, el){
+		alert ('span '+$(el).html());
+		return false;
+	});
  
-	 $('<div>asdf</div>').prependTo('span').css('color', '#0F0');
+	$('<div>asdf</div>').prependTo('span').css('color', '#0F0');
 	 
-	 $('div').bind('click', function(){
-		 alert ('div '+$(this).html());
-	 });
+	$('div').bind('click', function(e, el){
+		alert ('div '+$(el).html());
+	});
+	
+	$('div').animate({
+		borderWidth: '10px',
+		margin: '30px',
+		padding: '5px'
+	}, 3000);
+	 
 	 
 	 $(document.documentElement)
 		.animate({scrollTop: 900 },1000)
@@ -125,17 +133,39 @@ if (window.debug && window.console && window.console.profile)console.profile('JS
 		.animate({width: 600 }, 500)
 		.animate({width: 200 }, 1500)
 		.animate({width: 1000 }, 400);
+		
+	$(document.body)
+		.animate({ opacity: 0 }, 1000)
+		.animate({ opacity: 1 }, 2000)
+		.animate({ opacity: 0 }, 500)
+		.animate({ opacity: 1 }, 1500)
+		.animate({ opacity: 0 }, 400)
+		.animate({ opacity: 1 }, 400);
 	
+	
+	if(this.Karma)
+	$.getScript({
+		url: ['tests.js', 'tests2.js'],
+		callback: function(){
+			if (window.console) {
+				console.log(test);
+				console.log(test2);
+			}
+		}
+	});
+	
+	/*
+	$.get({
+		type: 'style',
+		url: ['style1.php'],
+		callback: function(){
+			alert('style loaded');
+		}
+	});
+	*/
+
 if (window.debug && window.console && window.console.profile)console.profileEnd('JS');	
 
-$.get({
-	url: ['tests.js', 'tests2.js'],
-	callback: function(){
-		alert(test);
-		alert(test2);
-	}
-});
 </script>
-
 </body>
 </html>

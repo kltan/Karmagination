@@ -286,8 +286,6 @@ Karma.event = Karma.event || {};
 Karma.event.functions = [];
 Karma.event.caller = function(e) {
 	e = window.event || e;
-	if(!e.currentTarget) e.currentTarget = this;
-	e.target ? e.srcElement = e.target: e.target = e.srcElement;
 
 	if(!e.stopPropagation && window.event) 
 		e.stopPropagation = function(){ window.event.cancelBubble = true; };
@@ -295,22 +293,12 @@ Karma.event.caller = function(e) {
 	if(!Karma.support.preventDefault && window.event)
 		e.preventDefault = function(){ window.event.returnValue = false; };
 	
-	if(e.currentTarget && e.currentTarget.KarmaEvent && e.currentTarget.KarmaEvent[e.type]) {
-		for(var functions in e.currentTarget.KarmaEvent[e.type]) {
-			if(e.currentTarget.KarmaEvent[e.type][functions].call(e.currentTarget, e) === false) {
+	if(this.KarmaEvent && this.KarmaEvent[e.type]) {
+		for(var functions in this.KarmaEvent[e.type]) {
+			if(this.KarmaEvent[e.type][functions](e, this) === false) {
 				e.stopPropagation();
 				e.preventDefault();	
 			}
 		}
 	}
 }
-
-// cleaning up all functions that have been attached to a node
-// need help on this
-
-Karma(window).on('unload', function(){
-	for (var i=0; i<Karma.event.functions.length; i++) {
-		Karma.event.functions[i] = null;
-	}
-	Karma.event.caller = null;
-});

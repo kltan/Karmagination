@@ -1,10 +1,10 @@
 /*!
- * Karmagination 0.2 - Fast and Simple
+ * Karmagination 0.3 - Fast and Simple
  * http://www.karmagination.com
  * Released under the MIT, BSD, and GPL Licenses
  * Copyright (c) 2009 Kean L. Tan 
  * Start date: 2009-04-01
- * Last build: 2009-06-02 06:27:11 PM
+ * Last build: 2009-06-03 07:04:25 PM
  *
  * Attribution:
  * CSS functions and browser detection is built upon mootools. Copyright (c) 2006-2008 [Valerio Proietti](http://mad4milk.net/).
@@ -153,7 +153,7 @@ Karma.extend(Karma.fn, {
 
 Karma.extend(Karma, {
 	// Karmagination version
-	version: 0.2,
+	version: 0.3,
 	
 	/* special thanks to insights from jQuery's cases so I don't have to manually hunt down the special cases myself */	 
 	HTMLtoNode: function(query, context) {
@@ -890,7 +890,7 @@ Karma.extend(Karma.fn, {
 	attr: function(prop, val){
 		if(Karma.isString(prop) && (Karma.isValue(val))) {
 			for(var i=0; i<this.length; i++) {
-				if (/id|href|name|dir|title/.test(prop))
+				if (/id|href|name|dir|src|title|type/.test(prop) && Karma.isDefined(this[i][prop]))
 					this[i][prop] = val;		  
 				else if (prop==="class") 
 					this[i]['className'] = val;
@@ -966,14 +966,14 @@ Karma.extend(Karma.fn, {
 	
 	hasClass: function(str) {
 		str = ' ' + str + ' ';
-		return (this.length) ? !(' ' + this[0].className + ' ').indexOf(str) : false;
+		return (this.length) ? (' ' + this[0].className + ' ').indexOf(str) >= 0 : false;
 	},
 	
 	toggleClass: function(str) {
 		str = ' ' + str + ' ';
 		for(var i=0; i< this.length; i++) {
 			var classname = ' ' + this[i].className + ' ';
-			this[i].className = !classname.indexOf(str) ? classname.replace(str, '') : classname += str;
+			this[i].className = classname.indexOf(str) >= 0 ? classname.replace(str, '') : classname += str;
 		}
 		return this;
 	},
@@ -1036,7 +1036,7 @@ Karma.extend(Karma, {
 });
 Karma.extend(Karma, {
 
-	get: function(opts) {
+	getScript: function(opts) {
 		
 		opts = Karma.extend({
 			type: 'script',
@@ -1048,22 +1048,56 @@ Karma.extend(Karma, {
 		// getting the scripts after onDOMready
 		// reason: if you want to insert the script before onDOMready, please use HTML instead because you are not loading it on use
 		// another reason: IE bombs if before onDOMready
+		// why not stick in <HEAD>? Won't work in XML but also cause the bomb in IE above
 		Karma(function(){ //onDOMready
 			// loop through all the urls
+			var $el,
+				rand = Math.floor(Math.random()*100000);
+			
 			for (var i = 0; i < opts.url.length; i++) {
-				// is it CSS or SCRIPT??
-				var html = (/css|style|link/.test(opts.type)) ? '<link type="text/css" href="'+opts.url[i]+'">' : '<script type="text/javascript" src="'+opts.url[i]+'"></script>';
-				// we append to document.documentElement to make it XML safe
-				var $el = Karma(html).appendTo(document.documentElement);
 				
-				// cross-browser compatibiilty with exception of Safari 2, which I don't support :-|)
-				// this will fire the callback after all the URLs have been completely loaded
-				$el[0].onreadystatechange = $el[0].onload = function(){
-					counter++;
-					if (counter == opts.url.length)
-						opts.callback();
-				};
+				// is it CSS or SCRIPT??
+				if (opts.type.toLowerCase() == 'script') {
+					$el = document.createElement('SCRIPT');
+					$el.type = 'text/javascript';
+					$el.src = opts.url[i];
+					document.documentElement.appendChild($el);
+					$el.onreadystatechange = $el.onload = function(){
+						counter++;
+						if (counter == opts.url.length) {
+							setTimeout(function(){ opts.callback(); }, 40); // weird hack, opera fails if no timeout 
+						}
+					};
+				}
+				// we populate all the linked styles first
+				/*else if (opts.type.toLowerCase() == 'style') {
+					// we use the knowledge the CSS blocks scripts
+					$el = Karma('<link type="text/css" rel="stylesheet" href="'+opts.url[i]+'"></link>')[0];
+					document.documentElement.appendChild($el);
+					$($el).on('load', function(){
+						var timer = setInterval(function(){
+							if (Karma.temp[rand]) {
+								opts.callback();
+								clearInterval(timer);
+							}
+						}, 88);
+					
+					});
+				}*/
 			}
+			// then we add a script, once the script fires, it means the linked style has been loaded
+			/*if (opts.type.toLowerCase() == 'style') {
+				$el = document.createElement('SCRIPT');
+				$el.innerHTML = 'Karma.temp['+rand+'] = true;';
+				document.documentElement.appendChild($el);
+					
+				var timer = setInterval(function(){
+					if (Karma.temp[rand]) {
+						opts.callback();
+						clearInterval(timer);
+					}
+				}, 88);
+			}*/
 		});
 	}
 });
@@ -1356,8 +1390,6 @@ Karma.event = Karma.event || {};
 Karma.event.functions = [];
 Karma.event.caller = function(e) {
 	e = window.event || e;
-	if(!e.currentTarget) e.currentTarget = this;
-	e.target ? e.srcElement = e.target: e.target = e.srcElement;
 
 	if(!e.stopPropagation && window.event) 
 		e.stopPropagation = function(){ window.event.cancelBubble = true; };
@@ -1365,25 +1397,15 @@ Karma.event.caller = function(e) {
 	if(!Karma.support.preventDefault && window.event)
 		e.preventDefault = function(){ window.event.returnValue = false; };
 	
-	if(e.currentTarget && e.currentTarget.KarmaEvent && e.currentTarget.KarmaEvent[e.type]) {
-		for(var functions in e.currentTarget.KarmaEvent[e.type]) {
-			if(e.currentTarget.KarmaEvent[e.type][functions].call(e.currentTarget, e) === false) {
+	if(this.KarmaEvent && this.KarmaEvent[e.type]) {
+		for(var functions in this.KarmaEvent[e.type]) {
+			if(this.KarmaEvent[e.type][functions](e, this) === false) {
 				e.stopPropagation();
 				e.preventDefault();	
 			}
 		}
 	}
 }
-
-// cleaning up all functions that have been attached to a node
-// need help on this
-
-Karma(window).on('unload', function(){
-	for (var i=0; i<Karma.event.functions.length; i++) {
-		Karma.event.functions[i] = null;
-	}
-	Karma.event.caller = null;
-});
 Karma.extend(Karma.fn, {
 			 
 	css: function(property, value) {
@@ -1402,18 +1424,19 @@ Karma.extend(Karma.fn, {
 	setStyle: function(property, value){
 		if(!this.length) return this;
 
-		if (property === 'opacity') {
+		if (property == 'opacity') {
 			for (var i=0; i < this.length; i++) {
-				// if we have perfect opacity, better to remove it to restore the antialiasing ablity of IE
-				if(Karma.support.filter) this[i].style.filter = (parseInt(value) == 1) ? '' : 'alpha(opacity=' + (value * 100) + ')';
-				else if (Karma.support.opacity) this[i].style.opacity = value;
+				// webkit and opera support filter, which is BS
+				if(Karma.support.opacity) this[i].style.opacity = value;
+				// if we have full opacity, better to remove it to restore the antialiasing ablity of IE
+				else if(Karma.support.filter) this[i].style.filter = (parseInt(value) == 1) ? '' : 'alpha(opacity=' + (value * 100) + ')';
+				
 			}
+			
 			return this;
 		}
 		
 		if (property === 'scrollTop' || property === 'scrollLeft') {
-			//alert (property + ' ' + parseInt(value));
-		//document.body[property] = parseInt(value);
 			for (var i=0; i < this.length; i++) {
 				if (this[i]===document.documentElement || this[i]===document || this[i]===document.body || this[i]===window) {
 					document.body[property] = value;
@@ -1425,12 +1448,11 @@ Karma.extend(Karma.fn, {
 			return this;
 		}
 		
-		if (property === 'float') {
+		if (property === 'float')
 			property = Karma.support.styleFloat ? 'styleFloat' : 'cssFloat';
-		}
 		
-		/*else
-			property = Karma.camelCase(property);*/
+		// I did some profiling, camelCase is dead evil and expensive
+		// else property = Karma.camelCase(property);
 		
 		// convert integers to strings;
 		if (Karma.isNumber(value)) value += 'px';
@@ -1455,10 +1477,21 @@ Karma.extend(Karma.fn, {
 			try { var opacity = this[0].filters('alpha').opacity; }	catch(e){ return 1; }
 			return opacity/100;
 		}
+		else if (property == 'borderWidth') {
+			property = 'borderTopWidth';
+		}
 		
-		/*else
-			property = Karma.camelCase(property);*/
-			
+		else if (property == 'margin') {
+			property = 'marginTop';
+		}
+		
+		else if (property == 'padding') {
+			property = 'paddingTop';
+		}
+		
+		// I did some profiling, camelCase is dead evil and expensive
+		// else property = Karma.camelCase(property);
+		
 		if (this[0].currentStyle) 
 			return this[0].currentStyle[property];
 			
@@ -1470,6 +1503,7 @@ Karma.extend(Karma.fn, {
 			computed = Karma.rgbToHex(rgb);
 		}
 		
+		// return Karma.isString(computed) ? computed.length > 0 ? computed : 0 : computed;
 		return computed;
 	},
 	
@@ -1519,8 +1553,8 @@ Karma.extend(Karma, {
 			hex.push((bit.length == 1) ? '0' + bit : bit);
 		}
 		return '#' + hex.join('');
-	},
-	/*
+	}/*,
+	
 	camelCase: function(property){
 		return property.replace(/\-(\w)/g, function(all, letter){ return letter.toUpperCase();	});
 	}*/
@@ -1565,7 +1599,9 @@ Karma.extend(Karma.fn, {
 			for (var prop in attributes) {
 				// get the current unanimated attribute
 				FX.start[prop] = $curEl.getStyle(prop);
-				
+				if (Karma.isString(FX.start[prop]) && FX.start[prop].indexOf('px') > 0) {
+					FX.start[prop] = parseInt(FX.start[prop]);
+				}
 				// set the final attribute if they are in NUMBERS or PX
 				if (Karma.isNumber(attributes[prop]))
 					FX.end[prop] = attributes[prop];
@@ -1580,32 +1616,30 @@ Karma.extend(Karma.fn, {
 					}
 
 					else if (val.indexOf('+') === 0)
-						FX.end[prop] = (FX.start[prop] - 0) + ($curEl.setStyle(prop, val.substr(1)).getStyle(prop) - 0); // using - 0 to cast into numbers
+						FX.end[prop] = parseInt(FX.start[prop]) + parseInt($curEl.setStyle(prop, val.substr(1)).getStyle(prop)); // using - 0 to cast into numbers
+
 
 					else if (val.indexOf('-') === 0)
-						FX.end[prop] = FX.start[prop] - $curEl.setStyle(prop, val.substr(1)).getStyle(prop);
+						FX.end[prop] = parseInt(FX.start[prop]) - parseInt($curEl.setStyle(prop, val.substr(1)).getStyle(prop));
 
-					else if (attributes[prop].indexOf('px') > 0)
+					else if (attributes[prop].indexOf('px') > 0) {
 						FX.end[prop] = attributes[prop];
+					}
 
 					else 
 						FX.end[prop] = $curEl.setStyle(prop, attributes[prop]).getStyle(prop);
 				
 					$curEl.setStyle(prop, FX.start[prop]); // revert to start value
 				}
-				
-				
 			}
-			
 			els[i].KarmaFX.push(FX); // pushing and increase counter
-
 		}
 		
 		// if first iteration in a an animation que then run, the function will look for subsequent queues that have been added after it has been run
 		if (this[0].KarmaFX.length === 1) {
 			var iter = 0,
 				startTimer = (new Date()).getTime(),
-				endTimer = startTimer + els[0].KarmaFX[iter].duration,
+				endTimer = els[0].KarmaFX ? startTimer + els[0].KarmaFX[iter].duration : 0,
 				timer;
 			
 		
@@ -1633,7 +1667,7 @@ Karma.extend(Karma.fn, {
 								duration = els[0].KarmaFX[iter].duration,
 								// using the current easing function, put in (start value, end value, elapsed time, and the total duration)
 								curval = els[i].KarmaFX[iter].easing(startVal, endVal, elapsed, duration);
-							
+
 							Karma(els[i]).setStyle(prop, curval);
 						}
 				}
@@ -1663,7 +1697,7 @@ Karma.extend(Karma.fn, {
 				// start the next animation queue in stack
 				else {
 					var startTimer = (new Date()).getTime(),
-						endTimer = startTimer + els[0].KarmaFX[iter].duration;
+						endTimer = els[0].KarmaFX ? startTimer + els[0].KarmaFX[iter].duration : 0;
 					
 					// get current style
 					for(var i=0; i<els.length; i++) {
@@ -1689,7 +1723,6 @@ Karma.extend(Karma.fn, {
 					
 				}
 				
-				
 			}
 				
 		}
@@ -1703,7 +1736,9 @@ Karma.easing = {
 		return  (end - start)*elapsed/duration + start;
 	}
 };
+
 Karma.easing.global = Karma.easing.linear;
+
 Karma.extend(Karma, {
 			 
 	// method to namespace function, taking a chapter from YUI

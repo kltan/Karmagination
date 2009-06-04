@@ -3,7 +3,7 @@ Karma.extend(Karma.fn, {
 	attr: function(prop, val){
 		if(Karma.isString(prop) && (Karma.isValue(val))) {
 			for(var i=0; i<this.length; i++) {
-				if (/id|href|name|dir|title/.test(prop))
+				if (/id|href|name|dir|src|title|type/.test(prop) && Karma.isDefined(this[i][prop]))
 					this[i][prop] = val;		  
 				else if (prop==="class") 
 					this[i]['className'] = val;
@@ -79,14 +79,14 @@ Karma.extend(Karma.fn, {
 	
 	hasClass: function(str) {
 		str = ' ' + str + ' ';
-		return (this.length) ? !(' ' + this[0].className + ' ').indexOf(str) : false;
+		return (this.length) ? (' ' + this[0].className + ' ').indexOf(str) >= 0 : false;
 	},
 	
 	toggleClass: function(str) {
 		str = ' ' + str + ' ';
 		for(var i=0; i< this.length; i++) {
 			var classname = ' ' + this[i].className + ' ';
-			this[i].className = !classname.indexOf(str) ? classname.replace(str, '') : classname += str;
+			this[i].className = classname.indexOf(str) >= 0 ? classname.replace(str, '') : classname += str;
 		}
 		return this;
 	},

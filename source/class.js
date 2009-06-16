@@ -1,8 +1,7 @@
-
-Karma['Class'] = function(opts){
+Karma.Class = function(opts){
 
 	opts.constructor = opts.constructor || function(){};
-	opts.constructor.extend = function(opts){
+	opts.constructor.add = function(opts){
 		for (var prop in opts)
 			opts.constructor.prototype[prop] = opts[prop];
 	};

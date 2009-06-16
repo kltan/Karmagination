@@ -1,12 +1,11 @@
-Karma.extend(Karma.fn, {
+Karma.fn.extend({
 	
 	// walking the DOM, going forward or backward
-	pedal: function(extreme, direction) {
-		var $ = this, 
-			elements = [];
+	pedal: function(extreme, direction, query) {
+		var elements = [];
 
-		for (var i=0; i< $.length; i++) {
-			var next=$[i][direction];
+		for (var i=0; i< this.length; i++) {
+			var next=this[i][direction];
 
 			while(next) {
 				if (next.nodeType == 1) {
@@ -19,26 +18,27 @@ Karma.extend(Karma.fn, {
 	
 		};
 		
-		return Karma(elements).stack($);
+		elements = (Karma.isString(query)) ? Karma.filter(query, Karma.unique(elements)) : Karma.unique(elements);
+		return Karma(elements).stack(this);
 	},
 
-	next: function() {
-		return this.pedal(false, 'nextSibling');
+	next: function(query) {
+		return this.pedal(false, 'nextSibling' ,query);
 	},
 	
-	nextAll: function() {
-		return this.pedal(true, 'nextSibling');
+	nextAll: function(query) {
+		return this.pedal(true, 'nextSibling' ,query);
 	},
 
-	prev: function() {
-		return this.pedal(false, 'previousSibling');
+	prev: function(query) {
+		return this.pedal(false, 'previousSibling' ,query);
 	},
 	
-	prevAll: function() {
-		return this.pedal(true, 'previousSibling');
+	prevAll: function(query) {
+		return this.pedal(true, 'previousSibling' ,query);
 	},
 	
-	siblings: function(includeSelf) {
+	siblings: function(query) {
 		var $ = this, 
 			siblings = [];
 		
@@ -47,25 +47,31 @@ Karma.extend(Karma.fn, {
 				cur = $[i].parentNode;
 			for(var j=0; j<cur.childNodes.length; j++) {
 				var node = cur.childNodes[j]; 
-				if(node.nodeType == 1 && (includeSelf || node != origin))
+				if(node.nodeType == 1 && node != origin)
 					siblings.push(node);
 			}
 		}
 		
-		return Karma(Karma.unique(siblings)).stack(this);
+		siblings = (Karma.isString(query)) ? Karma.filter(query, Karma.unique(siblings)) : Karma.unique(siblings);
+		
+		return Karma(siblings).stack(this);
 	},
 	
-	parent: function() {
+	parent: function(query) {
 		var $ = this,
 			parent = [];
 			
-		for (var i=0; i< $.length; i++)
-			parent.push($[i].parentNode);
+		for (var i=0; i< $.length; i++) {
+			if ($[i].parentNode)
+				parent.push($[i].parentNode);
+		}
+	
+		parent = (Karma.isString(query)) ? Karma.filter(query, Karma.unique(parent)) : Karma.unique(parent);
 			
-		return Karma(Karma.unique(parent)).stack(this);
+		return Karma(parent).stack(this);
 	},
 	
-	ancestors: function(str) {
+	ancestors: function(query) {
 		var $ = this,
 			ancestors = [];
 		
@@ -76,16 +82,12 @@ Karma.extend(Karma.fn, {
 				parent = parent.parentNode;
 			}
 		}
-		
-		ancestors = Karma.unique(ancestors);
-		
-		if(str && Karma.hasSelector())
-			ancestors = Karma.filter(str, ancestors)
+		ancestors = (Karma.isString(query)) ? Karma.filter(query, Karma.unique(ancestors)) : Karma.unique(ancestorss);
 
 		return Karma(ancestors).stack(this);
 	},
 	
-	children: function() {
+	children: function(query) {
 		var $ = this,
 			children = [];
 			
@@ -94,6 +96,9 @@ Karma.extend(Karma.fn, {
 				if($[i].childNodes[j].nodeType == 1)
 					children.push($[i].childNodes[j]);
 		}
+		
+		if (Karma.isString(query))
+			children = Karma.filter(query, children);
 		
 		return Karma(children).stack(this);
 		
@@ -125,23 +130,34 @@ Karma.extend(Karma.fn, {
 	
 	each: function(fn){
 		for (var i=0; i< this.length; i++)
-			fn(this[i]);
+			fn(this[i], i);
 		return this;
 	},
 	
 	map: function(fn) {
 		var ret = [];
 		for (var i=0; i< this.length; i++)
-			ret.push(fn(this[i]));
+			ret.push(fn(this[i], i));
+		return ret;
+	},
+	
+	grep: function(fn) {
+		var ret = [];
+		for (var i=0; i< this.length; i++) {
+			var result = fn(this[i], i);
+			if (result !== false)
+				ret.push(result);
+		}
 		return this;
 	},
-
-	find: function(query) {
+	
+	// possibly need to make the result unique, will see how people use the find method
+	descendents: function(query) {
 		var ret = [];
 		for(var i=0; i<this.length; i++)
 			ret = Karma.merge(ret, Karma.selector(query, this[i]));
 		
-		return ret.length? Karma(ret).stack(this) : Karma([]).stack(this);
+		return Karma(ret).stack(this);
 	},
 	
 	filter: function(query) {
@@ -155,4 +171,8 @@ Karma.extend(Karma.fn, {
 	not: function(query) {
 		return query ? Karma(Karma.selector(':not('+query+')', this)).stack(this) : this;
 	}
+});
+
+Karma.fn.extend({
+	find: Karma.fn.descendents // why? even I am addicted to using find
 });

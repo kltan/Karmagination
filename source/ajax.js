@@ -1,4 +1,4 @@
-Karma.extend(Karma, {
+Karma.extend({
 
 	ajax: function(o) {
 		

@@ -1,112 +1,104 @@
 /*!
- * Karmagination <?=$version?> - Fast and Simple
+ * Karmagination <?=$version?> - Fast and Easy
  * http://www.karmagination.com
- * Released under the MIT, BSD, and GPL Licenses
+ * Released under the MIT, BSD, and GPL Licenses - Choose one that fit your needs
  * Copyright (c) 2009 Kean L. Tan 
  * Start date: 2009-04-01
  * Last build: <?=$time."\n"?>
  *
  * Attribution:
- * CSS functions and browser detection is built upon mootools. Copyright (c) 2006-2008 [Valerio Proietti](http://mad4milk.net/).
- * CFT Copyright (c) Juriy Zaytsev http://yura.thinkweb2.com/cft/
- * The programming syntax is modeled after jQuery http://www.jquery.com
+ * CSS and browser detection copyright Valerio Proietti of Mootools
+ * Selector engine, Sizzle, founded by John Resig, copyright Dojo Foundation
+ * Common Feature Test copyright Juriy Zaytsev
+ * onDOMready based on many JS experts' input, see the unminified source code for names
  */
-
-;(function(){ //start anon
-
+ 
+ //start scope protection
+(function(){ 
+		   
+// speeding up reference in non-JIT bytecode
 var window = this,
 	document = this.document,
 	undefined,
-	_$ = window.$, 
 	_Karma = window.Karma;
 
-var Karma = window.$ = window.Karma = function( query, context ) {
-	return new Karma.prototype.init( query, context );	// Constructor
+// Constructor Function
+var Karma = this.$ = this.Karma = function( query, context ) {
+	if (!(this instanceof Karma)) return new Karma( query, context ); // if Karma has not been instatiated, this === window
+	
+	query = query || document;
+	context = context || window;
+	
+	// the stack to track callee Karma objects
+	this.KarmaStack = [];
+	
+	// result can be empty
+	var result = [];
+	
+	// if a node is passed
+	if (query.nodeType || query === window) {
+		this[0] = query;
+		this.length = 1;
+		this.query = query;
+		return; // do not return 'this' because it's a constructor
+	}
+	
+	// string is most used query
+	else if(typeof query == "string" && query.length > 0) {
+		this.query = query;
+		if (context.document) context = context.document;
+		// if HTML string passed
+		result = Karma.isHTML(query) ?	Karma.HTMLtoNode(query, context) : Karma.selector(query, context);
+	}
+	
+	// onDOMready
+	else if (typeof query == "function") {
+		(!Karma.isReady) ? Karma.ready_queue(function(){ query(Karma);}) :	query(Karma);
+		return;
+	}
+
+	// if array, object or Karma object, or some unknown, make it into an array
+	else { 
+		result = query; 
+		if(query.query)	this.query = query.query;
+	}
+	
+	this.populate(result);
 };
 
-Karma.prototype = {
-	// contructor function, we try to minimize function calls inside here
-	init: function(query, context) {
-		query = query || document;
-		context = context || window;
-		
-		// the stack to track callee Karma objects
-		this.KarmaStack = [];
-		
-		var result = [];
-		
-		// if Element/Node is passed
-		if (query.nodeType || query === window) {
-			this[0] = query;
-			this.length = 1;
-			this.query = query;
-			return;
-		}
-		
-		// string is most used query
-		else if(typeof query === "string" && query.length > 0) {
-			this.query = query;
-			// if HTML string passed
-			if (Karma.isHTML(query))
-				result = Karma.HTMLtoNode(query, context);
-
-			// assume as CSS query
-			else {
-				if (context.document) context = context.document;
-				result = Karma.selector(query, context);
-			}
-		}
-		
-		// onDOMready
-		else if (typeof query === "function") {
-			if(!Karma.isReady) {
-				Karma.ready_queue(function(){
-					query(Karma);
-				});
-			}
-			else
-				query(Karma);
-				
-			return;
-		}
-
-		// if array, object or Karma object
-		else { 
-			result = query; 
-			if(query.query)	this.query = query.query;
-		}
-		
-		this.populate(result);
-	}
-}
-
-Karma.fn = Karma.prototype.init.prototype;
-
-// define extend (o,o2,o3,o4,o5 .......) make stiching prototypes easy
 Karma.extend = function(o) {
-	var ret = (typeof o === 'object' || typeof o === 'function')? o : {};
+	var ret = (arguments.length == 1) ? Karma : (typeof o == 'object' || typeof o == 'function') ? o : {},
+		i = (arguments.length == 1) ? 0 : 1;	
 	
-	for ( var i = 1; i < arguments.length; i++ ) 
+	for (; i < arguments.length; i++ ) 
 		for ( var key in arguments[i] ) 
-			ret[key] = arguments[i][key]; 
-			
+			if (arguments[i][key] !== undefined)
+				ret[key] = arguments[i][key]; 
+	
 	return ret;
 };
 
-Karma.extend(Karma.fn, {
+Karma.prototype.extend = function(o) {
+	Karma.extend(Karma.prototype, o);
+}
 
-	// populate nodes into Karma
+// create an alias
+Karma.fn = Karma.prototype;
+
+Karma.fn.extend({
+	// populate nodes into Karma, starting from index n
 	populate: function(elements ,n) {
 		n = n || 0;
 		// make a clean array
 		this.length = n;
-		if(!Karma.isArray(elements))
-			elements = Karma.makeArray(elements);
+		
+		// if(!Karma.isArray(elements)) not needed as makeArray use early detection of Array to skip, saved some bytes
+		elements = Karma.makeArray(elements);
 
 		// exit if no elements found
 		if (!elements.length) return this;
 		
-		// push elements into Karma
+		// push elements into Karma, faster way than just just a for loop
 		Array.prototype.push.apply(this, elements);
 		return this;
 	},
@@ -145,31 +137,24 @@ Karma.extend(Karma.fn, {
 	
 	// query that created the current instance of Karma
 	query: null,
-	
-	isKarma: true
-	
+	isKarma: <?=$version?>
 });
 
+Karma.extend({
 
-Karma.extend(Karma, {
-	// Karmagination version
-	version: <?=$version?>,
-	
-	/* special thanks to insights from jQuery's cases so I don't have to manually hunt down the special cases myself */	 
+	/* special thanks to jQuery's cases so I don't have to manually hunt down the special cases myself */	 
 	HTMLtoNode: function(query, context) {
-		context = context || window;
+		context = context || document;
 		query = Karma.cleanHTML(query);
-		var tmp = (context === window) ? Karma.temp.div : context.document.createElement('DIV'), 
-			subquery = query.substring(0, 10).toLowerCase();;
+		var tmp = (context === window) ? Karma.temp.div.cloneNode(false) : context.createElement('DIV'), 
+			subquery = query.substring(0, 8).toLowerCase();
 
 		// lesson learned again and again never use Regex when indexOf can replace the job.
-		
 		// td
 		if(!subquery.indexOf('<tr')) {
 			query = '<table>' + query + '</table>';
 			tmp.innerHTML=query;
 			tmp = tmp.firstChild;
-			
 		}
 		// td or th
 		else if(!subquery.indexOf("<td") || !subquery.indexOf("<th")) {
@@ -209,7 +194,7 @@ Karma.extend(Karma, {
 			tmp.innerHTML=query;
 			tmp = tmp.lastChild;
 		}
-		
+
 		// others
 		else {
 			tmp.innerHTML = query;
@@ -218,24 +203,28 @@ Karma.extend(Karma, {
 		return tmp.childNodes.length ? Karma.makeArray(tmp.childNodes) : null;
 	},
 	 
-	// type detection
-	isArray: function(o){ return Object.prototype.toString.call(o) === "[object Array]" },
-	isObject: function(o){ return Object.prototype.toString.call(o) === "[object Object]" },
-	isDate: function(o){ return Object.prototype.toString.call(o) === "[object Date]" },
-	isGenericObject: function(o) { return typeof o === "object" },
-	isFunction: function(o) { return typeof o === "function" },
-	isString: function(o) { return typeof o === "string" },
-	isNumber: function(o){ return typeof o === "number" },
-	isValue: function(o){ return typeof o === "number" || typeof o === "string" },
-	isBoolean: function(o){ return typeof o === "boolean" },
+	// type detection, Miller method for those special cases otherwise typeof is faster
+	isArray: function(o){ return Object.prototype.toString.call(o) == "[object Array]" },
+	isObject: function(o){ return Object.prototype.toString.call(o) == "[object Object]" },
+	isDate: function(o){ return Object.prototype.toString.call(o) == "[object Date]" },
+	isGenericObject: function(o) { return typeof o == "object" },
+	isFunction: function(o) { return typeof o == "function" },
+	isString: function(o) { return typeof o == "string" },
+	isNumber: function(o){ return typeof o == "number" },
+	isValue: function(o){ return typeof o == "number" || typeof o == "string" },
+	isBoolean: function(o){ return typeof o == "boolean" },
 	isDefined: function(o) { return o !== undefined },
+	// unreliable detection, using documentation to prevent mistake instead
 	isHTML: function(o) { return /^<.+/.test(Karma.trim(o).substring(0,3).toLowerCase()) },
 	
-	// browser detection
-	isIE: !!(window.ActiveXObject && !window.opera),
+	// browser detection, TAKEN FROM MOOTOOLS with modifications, if you are new to JS, !! mean cast as boolean type
+	// learned something new today from BING, a new-old IE feature detection that's probably better
+	// old method !!(window.ActiveXObject && !window.opera) 
+	// new method !window.addEventListener, we used that for feature detection but it turns out to be an IE detector too
+	isIE: !window.addEventListener,
 	isIE6: !!(document.createElement('DIV').style.maxHeight === undefined),
-	isIE7: !!(window.ActiveXObject && !window.opera && window.XMLHttpRequest && !document.querySelectorAll),
-	isIE8: !!(window.ActiveXObject && !window.opera && document.querySelectorAll),
+	isIE7: !!(!window.addEventListener && window.XMLHttpRequest && !document.querySelectorAll),
+	isIE8: !!(!window.addEventListener && document.querySelectorAll),
 	isGecko: !(document.getBoxObjectFor === undefined),
 	isOpera: !!window.opera,
 	isWebkit: !!(!window.opera && !navigator.taintEnable && document.evaluate && document.getBoxObjectFor === undefined),
@@ -243,16 +232,15 @@ Karma.extend(Karma, {
 	// trim front/ending whitespaces and newlines so innerHTML won't go crazy
 	cleanHTML: function(HTML){ return Karma.trim(HTML).replace(/[\n\r]/g, ' '); },
 	
-	// only works for array-like object like querynodelist
+	// used internally, only works for array-like objects
 	makeArray: function(o) {
-		if (Karma.isArray(o))
-			return o;
-
-		if (Karma.support.nodeListToArray)
-			return Array.prototype.slice.call(o);
+		if (Karma.isArray(o)) return o; // makes sense, doesn't it?
+		if (Karma.support.nodeListToArray) return Array.prototype.slice.call(o);
 		
 		var ret = [];
-		if (!Karma.support.nodeListToArray && o.length) {
+		
+		// some array-like objects will have length
+		if (o.length) {
 			for(var i=0; i<o.length; i++)
 				ret.push(o[i]);
 		}
@@ -269,14 +257,9 @@ Karma.extend(Karma, {
 		return ret;
 	},
 	
-	// playing nice with others out there
-	noConflict: function(extreme){
-		window.$ = _$;
-
-		if(extreme)
-			window.Karma = _Karma;
-			
-		return $;
+	playNice: function(){
+		window.Karma = _Karma;
+		return Karma;
 	},
 	
 	// returns a unique set of array
@@ -284,7 +267,7 @@ Karma.extend(Karma, {
 		var ret = [];
 		o:for(var i = 0, n = array.length; i < n; i++) {
 			for(var x = i + 1 ; x < n; x++) {
-				if(array[x]===array[i]) // prevent window == document for DOM comparison
+				if(array[x] === array[i]) // prevent window == document for DOM comparison
 					continue o; 
 			}
 			ret.push(array[i]);
@@ -294,6 +277,7 @@ Karma.extend(Karma, {
 	
 	// functions to fire onDOMready
 	readyFunctions: [],
+	
 	// onDOMready yet?
 	isReady: false, 
 	
@@ -304,6 +288,8 @@ Karma.extend(Karma, {
 	},
 	
 	// reliable onDOMready code, thanks to Dean Edwards/Diego Perini/Byron McGregor/John Resig/Matthias Miller et al
+	// view the contributors here, http://dean.edwards.name/weblog/2006/06/again/
+	// modified so that onDOMready runs once for each frame it's being used, speeds up when you have multiple onDOMready statements
 	ready: function(){
 		var init = function() {
 			if(Karma.isReady) return;
@@ -326,12 +312,10 @@ Karma.extend(Karma, {
 		}
 		else if (/loaded|complete/.test(document.readyState)) return init();
 		 
-		// loop every 80 ms is good enough
+		// loop every 88 ms is good enough
 		if (!Karma.isReady) setTimeout(arguments.callee, 88);
 	}
 });
-
-//if(Karma.isIE && !Karma.isIE7){ try{ document.execCommand("BackgroundImageCache", false, true); }catch(e){}}
 
 Karma.temp = {
 	div: document.createElement('DIV'),
@@ -368,8 +352,8 @@ Karma.temp = {
 
 Karma.temp.event();
 
-
 // know the current browser's capabilities, we calculate here and use everywhere without recalculating
+// why isDefined is reliable here, REASON: we just created the ELEMENT and can be sure they are not polluted
 Karma.support = {
 	cssText: Karma.isDefined(Karma.temp.div.style.cssText),
 	cssFloat: Karma.isDefined(Karma.temp.div.style.cssFloat),

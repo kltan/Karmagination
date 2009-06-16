@@ -1,112 +1,104 @@
 /*!
- * Karmagination 0.3 - Fast and Simple
+ * Karmagination 0.3 - Fast and Easy
  * http://www.karmagination.com
- * Released under the MIT, BSD, and GPL Licenses
+ * Released under the MIT, BSD, and GPL Licenses - Choose one that fit your needs
  * Copyright (c) 2009 Kean L. Tan 
  * Start date: 2009-04-01
- * Last build: 2009-06-03 07:04:25 PM
+ * Last build: 2009-06-15 05:45:28 PM
  *
  * Attribution:
- * CSS functions and browser detection is built upon mootools. Copyright (c) 2006-2008 [Valerio Proietti](http://mad4milk.net/).
- * CFT Copyright (c) Juriy Zaytsev http://yura.thinkweb2.com/cft/
- * The programming syntax is modeled after jQuery http://www.jquery.com
+ * CSS and browser detection copyright Valerio Proietti of Mootools
+ * Selector engine, Sizzle, founded by John Resig, copyright Dojo Foundation
+ * Common Feature Test copyright Juriy Zaytsev
+ * onDOMready based on many JS experts' input, see the unminified source code for names
  */
-
-;(function(){ //start anon
-
+ 
+ //start scope protection
+(function(){ 
+		   
+// speeding up reference in non-JIT bytecode
 var window = this,
 	document = this.document,
 	undefined,
-	_$ = window.$, 
 	_Karma = window.Karma;
 
-var Karma = window.$ = window.Karma = function( query, context ) {
-	return new Karma.prototype.init( query, context );	// Constructor
+// Constructor Function
+var Karma = this.$ = this.Karma = function( query, context ) {
+	if (!(this instanceof Karma)) return new Karma( query, context ); // if Karma has not been instatiated, this === window
+	
+	query = query || document;
+	context = context || window;
+	
+	// the stack to track callee Karma objects
+	this.KarmaStack = [];
+	
+	// result can be empty
+	var result = [];
+	
+	// if a node is passed
+	if (query.nodeType || query === window) {
+		this[0] = query;
+		this.length = 1;
+		this.query = query;
+		return; // do not return 'this' because it's a constructor
+	}
+	
+	// string is most used query
+	else if(typeof query == "string" && query.length > 0) {
+		this.query = query;
+		if (context.document) context = context.document;
+		// if HTML string passed
+		result = Karma.isHTML(query) ?	Karma.HTMLtoNode(query, context) : Karma.selector(query, context);
+	}
+	
+	// onDOMready
+	else if (typeof query == "function") {
+		(!Karma.isReady) ? Karma.ready_queue(function(){ query(Karma);}) :	query(Karma);
+		return;
+	}
+
+	// if array, object or Karma object, or some unknown, make it into an array
+	else { 
+		result = query; 
+		if(query.query)	this.query = query.query;
+	}
+	
+	this.populate(result);
 };
 
-Karma.prototype = {
-	// contructor function, we try to minimize function calls inside here
-	init: function(query, context) {
-		query = query || document;
-		context = context || window;
-		
-		// the stack to track callee Karma objects
-		this.KarmaStack = [];
-		
-		var result = [];
-		
-		// if Element/Node is passed
-		if (query.nodeType || query === window) {
-			this[0] = query;
-			this.length = 1;
-			this.query = query;
-			return;
-		}
-		
-		// string is most used query
-		else if(typeof query === "string" && query.length > 0) {
-			this.query = query;
-			// if HTML string passed
-			if (Karma.isHTML(query))
-				result = Karma.HTMLtoNode(query, context);
-
-			// assume as CSS query
-			else {
-				if (context.document) context = context.document;
-				result = Karma.selector(query, context);
-			}
-		}
-		
-		// onDOMready
-		else if (typeof query === "function") {
-			if(!Karma.isReady) {
-				Karma.ready_queue(function(){
-					query(Karma);
-				});
-			}
-			else
-				query(Karma);
-				
-			return;
-		}
-
-		// if array, object or Karma object
-		else { 
-			result = query; 
-			if(query.query)	this.query = query.query;
-		}
-		
-		this.populate(result);
-	}
-}
-
-Karma.fn = Karma.prototype.init.prototype;
-
-// define extend (o,o2,o3,o4,o5 .......) make stiching prototypes easy
 Karma.extend = function(o) {
-	var ret = (typeof o === 'object' || typeof o === 'function')? o : {};
+	var ret = (arguments.length == 1) ? Karma : (typeof o == 'object' || typeof o == 'function') ? o : {},
+		i = (arguments.length == 1) ? 0 : 1;	
 	
-	for ( var i = 1; i < arguments.length; i++ ) 
+	for (; i < arguments.length; i++ ) 
 		for ( var key in arguments[i] ) 
-			ret[key] = arguments[i][key]; 
-			
+			if (arguments[i][key] !== undefined)
+				ret[key] = arguments[i][key]; 
+	
 	return ret;
 };
 
-Karma.extend(Karma.fn, {
+Karma.prototype.extend = function(o) {
+	Karma.extend(Karma.prototype, o);
+}
 
-	// populate nodes into Karma
+// create an alias
+Karma.fn = Karma.prototype;
+
+Karma.fn.extend({
+	// populate nodes into Karma, starting from index n
 	populate: function(elements ,n) {
 		n = n || 0;
 		// make a clean array
 		this.length = n;
-		if(!Karma.isArray(elements))
-			elements = Karma.makeArray(elements);
+		
+		// if(!Karma.isArray(elements)) not needed as makeArray use early detection of Array to skip, saved some bytes
+		elements = Karma.makeArray(elements);
 
 		// exit if no elements found
 		if (!elements.length) return this;
 		
-		// push elements into Karma
+		// push elements into Karma, faster way than just just a for loop
 		Array.prototype.push.apply(this, elements);
 		return this;
 	},
@@ -145,31 +137,23 @@ Karma.extend(Karma.fn, {
 	
 	// query that created the current instance of Karma
 	query: null,
-	
-	isKarma: true
-	
-});
+	isKarma: 0.3});
 
+Karma.extend({
 
-Karma.extend(Karma, {
-	// Karmagination version
-	version: 0.3,
-	
-	/* special thanks to insights from jQuery's cases so I don't have to manually hunt down the special cases myself */	 
+	/* special thanks to jQuery's cases so I don't have to manually hunt down the special cases myself */	 
 	HTMLtoNode: function(query, context) {
-		context = context || window;
+		context = context || document;
 		query = Karma.cleanHTML(query);
-		var tmp = (context === window) ? Karma.temp.div : context.document.createElement('DIV'), 
-			subquery = query.substring(0, 10).toLowerCase();;
+		var tmp = (context === window) ? Karma.temp.div.cloneNode(false) : context.createElement('DIV'), 
+			subquery = query.substring(0, 8).toLowerCase();
 
 		// lesson learned again and again never use Regex when indexOf can replace the job.
-		
 		// td
 		if(!subquery.indexOf('<tr')) {
 			query = '<table>' + query + '</table>';
 			tmp.innerHTML=query;
 			tmp = tmp.firstChild;
-			
 		}
 		// td or th
 		else if(!subquery.indexOf("<td") || !subquery.indexOf("<th")) {
@@ -209,7 +193,7 @@ Karma.extend(Karma, {
 			tmp.innerHTML=query;
 			tmp = tmp.lastChild;
 		}
-		
+
 		// others
 		else {
 			tmp.innerHTML = query;
@@ -218,24 +202,28 @@ Karma.extend(Karma, {
 		return tmp.childNodes.length ? Karma.makeArray(tmp.childNodes) : null;
 	},
 	 
-	// type detection
-	isArray: function(o){ return Object.prototype.toString.call(o) === "[object Array]" },
-	isObject: function(o){ return Object.prototype.toString.call(o) === "[object Object]" },
-	isDate: function(o){ return Object.prototype.toString.call(o) === "[object Date]" },
-	isGenericObject: function(o) { return typeof o === "object" },
-	isFunction: function(o) { return typeof o === "function" },
-	isString: function(o) { return typeof o === "string" },
-	isNumber: function(o){ return typeof o === "number" },
-	isValue: function(o){ return typeof o === "number" || typeof o === "string" },
-	isBoolean: function(o){ return typeof o === "boolean" },
+	// type detection, Miller method for those special cases otherwise typeof is faster
+	isArray: function(o){ return Object.prototype.toString.call(o) == "[object Array]" },
+	isObject: function(o){ return Object.prototype.toString.call(o) == "[object Object]" },
+	isDate: function(o){ return Object.prototype.toString.call(o) == "[object Date]" },
+	isGenericObject: function(o) { return typeof o == "object" },
+	isFunction: function(o) { return typeof o == "function" },
+	isString: function(o) { return typeof o == "string" },
+	isNumber: function(o){ return typeof o == "number" },
+	isValue: function(o){ return typeof o == "number" || typeof o == "string" },
+	isBoolean: function(o){ return typeof o == "boolean" },
 	isDefined: function(o) { return o !== undefined },
+	// unreliable detection, using documentation to prevent mistake instead
 	isHTML: function(o) { return /^<.+/.test(Karma.trim(o).substring(0,3).toLowerCase()) },
 	
-	// browser detection
-	isIE: !!(window.ActiveXObject && !window.opera),
+	// browser detection, TAKEN FROM MOOTOOLS with modifications, if you are new to JS, !! mean cast as boolean type
+	// learned something new today from BING, a new-old IE feature detection that's probably better
+	// old method !!(window.ActiveXObject && !window.opera) 
+	// new method !window.addEventListener, we used that for feature detection but it turns out to be an IE detector too
+	isIE: !window.addEventListener,
 	isIE6: !!(document.createElement('DIV').style.maxHeight === undefined),
-	isIE7: !!(window.ActiveXObject && !window.opera && window.XMLHttpRequest && !document.querySelectorAll),
-	isIE8: !!(window.ActiveXObject && !window.opera && document.querySelectorAll),
+	isIE7: !!(!window.addEventListener && window.XMLHttpRequest && !document.querySelectorAll),
+	isIE8: !!(!window.addEventListener && document.querySelectorAll),
 	isGecko: !(document.getBoxObjectFor === undefined),
 	isOpera: !!window.opera,
 	isWebkit: !!(!window.opera && !navigator.taintEnable && document.evaluate && document.getBoxObjectFor === undefined),
@@ -243,16 +231,15 @@ Karma.extend(Karma, {
 	// trim front/ending whitespaces and newlines so innerHTML won't go crazy
 	cleanHTML: function(HTML){ return Karma.trim(HTML).replace(/[\n\r]/g, ' '); },
 	
-	// only works for array-like object like querynodelist
+	// used internally, only works for array-like objects
 	makeArray: function(o) {
-		if (Karma.isArray(o))
-			return o;
-
-		if (Karma.support.nodeListToArray)
-			return Array.prototype.slice.call(o);
+		if (Karma.isArray(o)) return o; // makes sense, doesn't it?
+		if (Karma.support.nodeListToArray) return Array.prototype.slice.call(o);
 		
 		var ret = [];
-		if (!Karma.support.nodeListToArray && o.length) {
+		
+		// some array-like objects will have length
+		if (o.length) {
 			for(var i=0; i<o.length; i++)
 				ret.push(o[i]);
 		}
@@ -269,14 +256,9 @@ Karma.extend(Karma, {
 		return ret;
 	},
 	
-	// playing nice with others out there
-	noConflict: function(extreme){
-		window.$ = _$;
-
-		if(extreme)
-			window.Karma = _Karma;
-			
-		return $;
+	playNice: function(){
+		window.Karma = _Karma;
+		return Karma;
 	},
 	
 	// returns a unique set of array
@@ -284,7 +266,7 @@ Karma.extend(Karma, {
 		var ret = [];
 		o:for(var i = 0, n = array.length; i < n; i++) {
 			for(var x = i + 1 ; x < n; x++) {
-				if(array[x]===array[i]) // prevent window == document for DOM comparison
+				if(array[x] === array[i]) // prevent window == document for DOM comparison
 					continue o; 
 			}
 			ret.push(array[i]);
@@ -294,6 +276,7 @@ Karma.extend(Karma, {
 	
 	// functions to fire onDOMready
 	readyFunctions: [],
+	
 	// onDOMready yet?
 	isReady: false, 
 	
@@ -304,6 +287,8 @@ Karma.extend(Karma, {
 	},
 	
 	// reliable onDOMready code, thanks to Dean Edwards/Diego Perini/Byron McGregor/John Resig/Matthias Miller et al
+	// view the contributors here, http://dean.edwards.name/weblog/2006/06/again/
+	// modified so that onDOMready runs once for each frame it's being used, speeds up when you have multiple onDOMready statements
 	ready: function(){
 		var init = function() {
 			if(Karma.isReady) return;
@@ -326,12 +311,10 @@ Karma.extend(Karma, {
 		}
 		else if (/loaded|complete/.test(document.readyState)) return init();
 		 
-		// loop every 80 ms is good enough
+		// loop every 88 ms is good enough
 		if (!Karma.isReady) setTimeout(arguments.callee, 88);
 	}
 });
-
-//if(Karma.isIE && !Karma.isIE7){ try{ document.execCommand("BackgroundImageCache", false, true); }catch(e){}}
 
 Karma.temp = {
 	div: document.createElement('DIV'),
@@ -368,8 +351,8 @@ Karma.temp = {
 
 Karma.temp.event();
 
-
 // know the current browser's capabilities, we calculate here and use everywhere without recalculating
+// why isDefined is reliable here, REASON: we just created the ELEMENT and can be sure they are not polluted
 Karma.support = {
 	cssText: Karma.isDefined(Karma.temp.div.style.cssText),
 	cssFloat: Karma.isDefined(Karma.temp.div.style.cssFloat),
@@ -392,91 +375,28 @@ Karma.support = {
 // run the function to wait for onDOMready
 Karma.ready();
 
-Karma.extend(Karma.fn, {
+Karma.fn.extend({
 			 
 	append: function(o) {
 		var els = Karma(o);
 		if(!this.length || !els.length) return this;
 		
-		var fragment;		
-		if (els.length > 1) {
-			fragment = Karma.temp.fragment.cloneNode(false);
-			
-			for (var i=0; i< els.length; i++)
-				fragment.appendChild(els[i]);
-		}
-		else 
-			fragment = els[0];
-		
-		if (Karma.isHTML(o)) {
-			for (var i=0; i< this.length; i++) 
-				this[i].appendChild(fragment.cloneNode(true));
-		}
-		else 
-			this[0].appendChild(fragment);
-			
-		
+		Karma.temp.manipulate('append', els, this, o);
 		return this;
-		
 	},
 	
 	appendTo: function(o) {
 		var els = Karma(o);
 		if(!this.length || !els.length) return this;
 		
-		var fragment;		
-		if (this.length > 1) {
-			fragment = Karma.temp.fragment.cloneNode(false);
-			
-			for (var i=0; i< this.length; i++)
-				fragment.appendChild(this[i]);
-		}
-		else 
-			fragment = this[0];
-			
-		if (Karma.isHTML(this.query)) {
-			var cloned = [];
-			for (var j=0; j< els.length; j++) {
-				var newClones = fragment.cloneNode(true);
-				
-				if(newClones.nodeType == 11)
-					for(var i=0; i < newClones.childNodes.length; i++)
-						cloned.push(newClones.childNodes[i]);
-				else
-					cloned.push(newClones);
-					
-				els[j].appendChild(newClones);
-			}
-			return Karma(cloned);
-		}
-		else 
-			els[0].appendChild(fragment);
-		
-		return this;
+		return Karma.temp.manipulate('append', this, els, this.query, true);
 	},
 	
 	prepend: function(o) {
 		var els = Karma(o);
 		if(!this.length || !els.length) return this;
 		
-		var fragment;		
-		if (els.length > 1) {
-			fragment = Karma.temp.fragment.cloneNode(false);
-		
-			for (var i=0; i< els.length; i++)
-				fragment.appendChild(els[i]);
-		}
-		else
-			fragment = els[0];
-			
-		
-		if (Karma.isHTML(o)) {
-			for (var i=0; i< this.length; i++)
-				this[i].insertBefore(fragment.cloneNode(true), this[i].firstChild);
-		}
-		else 
-			this[0].insertBefore(fragment, this[0].firstChild);
-			
+		Karma.temp.manipulate('prepend', els, this, o);
 		return this;
 	},
 	
@@ -484,58 +404,14 @@ Karma.extend(Karma.fn, {
 		var els = Karma(o);
 		if(!this.length || !els.length) return this;
 		
-		var fragment;		
-		if (this.length > 1) {
-			fragment = Karma.temp.fragment.cloneNode(false);
-		
-			for (var i=0; i< this.length; i++)
-				fragment.appendChild(this[i]);
-		}
-		else
-			fragment = this[0];
-		
-		if (Karma.isHTML(this.query)) {
-			var cloned = [];
-			for (var i=0; i< els.length; i++) {
-				var newClones = fragment.cloneNode(true);
-				
-				if(newClones.nodeType == 11)
-					for(var j=0; j < newClones.childNodes.length; j++)
-						cloned.push(newClones.childNodes[j]);
-				else
-					cloned.push(newClones);
-				
-				els[i].insertBefore(newClones, els[i].firstChild);
-			}
-
-			return Karma(cloned);
-		}
-		else 
-			els[0].insertBefore(fragment, els[0].firstChild);
-		
-		return this;
+		return Karma.temp.manipulate('prepend', this, els, this.query, true);
 	},
 	
 	before: function(o) {
 		var els = Karma(o);
 		if(!this.length || !els.length) return this;
 		
-		var fragment;
-		if(els.length > 1){
-			fragment = Karma.temp.fragment.cloneNode(false);
-			for (var i=0; i< els.length; i++)
-				fragment.appendChild(els[i]);
-		}
-		else
-			fragment = els[0];
-		
-		if (Karma.isHTML(o)) {
-			for (var i=0; i< this.length; i++) 
-				this[i].parentNode.insertBefore(fragment.cloneNode(true), this[i]);
-		}
-		else 
-			this[0].parentNode.insertBefore(fragment, this[0]);
-		
+		Karma.temp.manipulate('before', els, this, o);
 		return this;
 	},
 	
@@ -543,34 +419,7 @@ Karma.extend(Karma.fn, {
 		var els = Karma(o);
 		if(!this.length || !els.length) return this;
 		
-		var fragment;
-		if(this.length > 1){
-			fragment = Karma.temp.fragment.cloneNode(false);
-			for (var i=0; i< this.length; i++)
-				fragment.appendChild(this[i]);
-		}
-		else
-			fragment = this[0];
-		
-		if (Karma.isHTML(this.query)) {
-			var cloned = [];
-			for (var i=0; i< els.length; i++) {
-				var newClones = fragment.cloneNode(true);
-				
-				if(newClones.nodeType == 11)
-					for(var j=0; j < newClones.childNodes.length; j++)
-						cloned.push(newClones.childNodes[j]);
-				else
-					cloned.push(newClones);
-				
-				els[i].parentNode.insertBefore(newClones, els[i]);
-			}
-			return Karma(cloned);
-		}
-		else 
-			els[0].parentNode.insertBefore(fragment, els[0]);
-		
-		return this;
+		return Karma.temp.manipulate('before', this, els, this.query, true);
 		
 	},
 	
@@ -578,67 +427,15 @@ Karma.extend(Karma.fn, {
 		var els = Karma(o);
 		if(!this.length || !els.length) return this;
 		
-		var fragment;
-		if(els.length > 1){
-			fragment = Karma.temp.fragment.cloneNode(false);
-			for (var i=0; i< els.length; i++)
-				fragment.appendChild(els[i]);
-		}
-		else
-			fragment = els[0];
-			
-		if (Karma.isHTML(o)) {
-			for (var i=0; i< this.length; i++) {
-				this[i].nextSibling ? 
-					this[i].parentNode.insertBefore(fragment.cloneNode(true), this[i].nextSibling):
-					this[i].parentNode.appendChild(fragment.cloneNode(true));
-			}
-		}
-		else {
-			this[0].nextSibling ?
-				this[0].parentNode.insertBefore(fragment, this[0].nextSibling):
-				this[0].parentNode.appendChild(fragment);
-		}
+		Karma.temp.manipulate('after', els, this, o);
 		return this;
 	},
 	
 	insertAfter: function(o){
 		var els = Karma(o);
 		if(!this.length || !els.length) return this;
-		
-		var fragment;
-		if(this.length > 1){
-			fragment = Karma.temp.fragment.cloneNode(false);
-		
-			for (var i=0; i< this.length; i++)
-				fragment.appendChild(this[i]);
-		}
-		else
-			fragment = this[0];
-		
-		if (Karma.isHTML(this.query)) {
-			var cloned = [];
-			for (var i=0; i< els.length; i++) {
-				var newClones = fragment.cloneNode(true);
-				
-				if(newClones.nodeType == 11)
-					for(var j=0; j < newClones.childNodes.length; j++)
-						cloned.push(newClones.childNodes[j]);
-				else
-					cloned.push(newClones);
-					
-				els[i].nextSibling ? 
-					els[i].parentNode.insertBefore(newClones, els[i].nextSibling):
-					els[i].parentNode.appendChild(newClones);
-			}
-			return Karma(cloned);
-		}
-		else {
-			els[0].nextSibling ?
-				els[0].parentNode.insertBefore(fragment, els[0].nextSibling):
-				els[0].parentNode.appendChild(fragment);
-		}
-		return this;
+
+		return Karma.temp.manipulate('after', this, els, this.query, true);
 	},
 	
 	// removes all events attached including current node
@@ -662,23 +459,23 @@ Karma.extend(Karma.fn, {
 		return this;
 	},
 	
-	html: function(str) {
-		if(Karma.isValue(str)) {
+	html: function(value) {
+		if(Karma.isValue(value)) {
 			for (var i=0; i< this.length; i++)
-				this[i].innerHTML = str;
+				this[i].innerHTML = value;
 		
 			return this;
 		}
 		return this.length? this[0].innerHTML: null;
 	},
 	
-	text: function(str) {
-		if(Karma.isValue(str)) {
+	text: function(value) {
+		if(Karma.isValue(value)) {
 			for(var i=0; i< this.length; i++) {
 				if(this[i].innerText)
-					this[i].innerText = str;
+					this[i].innerText = value;
 				else
-					this[i].textContent = str;
+					this[i].textContent = value;
 			}
 			return this;
 		}
@@ -700,6 +497,7 @@ Karma.extend(Karma.fn, {
 		return this;
 	},
 	
+	// TODO: clone events
 	clone: function(){
 		var $ = this,
 			cloned = [];
@@ -707,7 +505,7 @@ Karma.extend(Karma.fn, {
 		for(var i=0;i<$.length;i++) {
 			if (Karma.support.outerHTML) {
 				var string = $[i].outerHTML;
-				cloned.push(Karma.HTMLtoNode(string)[0]);
+				cloned.push(Karma(string, this[i].ownerDocument)[0]);
 			}
 			else 
 				cloned.push($[i].cloneNode(true));
@@ -718,7 +516,7 @@ Karma.extend(Karma.fn, {
 
 	wrap: function(str){
 		for(var i=0;i<this.length;i++) {
-			var	cloned = Karma(str).clone()[0];
+			var	cloned = Karma(str, this[i].ownerDocument).clone()[0];
 				
 			this[i].parentNode.replaceChild(cloned, this[i]);
 			cloned.appendChild(this[i]);
@@ -727,15 +525,76 @@ Karma.extend(Karma.fn, {
 	}
 
 });
-Karma.extend(Karma.fn, {
+
+Karma.extend(Karma.temp, {
+	manipulate: function (method, child, parent, query, ret) {
+		var fragment = Karma.temp.appendToFragment(child);
+	
+		if (Karma.isHTML(query)) {
+			var cloned = [];
+				
+			for (var i=0; i< parent.length; i++) {
+				var newClones = fragment.cloneNode(true);
+				if (ret) {
+					 if(newClones.nodeType === 11) {
+          				for(var j=0; j < newClones.childNodes.length; j++)
+           					 cloned.push(newClones.childNodes[j]);
+					 }
+       				 else
+          				cloned.push(newClones);
+				}
+				
+				if (method == 'append')
+					parent[i].appendChild(newClones);
+				else if (method == 'prepend')
+					parent[i].insertBefore(newClones, parent[i].firstChild);
+				else if (method == 'before')
+					parent[i].parentNode.insertBefore(newClones, parent[i]);
+				else if (method == 'after') {
+					parent[i].nextSibling ? 
+						parent[i].parentNode.insertBefore(newClones, parent[i].nextSibling):
+						parent[i].parentNode.appendChild(newClones);
+				}
+			}
+			if (ret)
+				return Karma(cloned);
+		}
+		else if (method == 'append')
+			parent[0].appendChild(newClones);
+		else if (method == 'prepend')
+			parent[0].insertBefore(newClones, parent[0].firstChild);
+		else if (method == 'before')
+			parent[0].parentNode.insertBefore(newClones, parent[0]);
+		else if (method == 'after') {
+			parent[0].nextSibling ? 
+				parent[0].parentNode.insertBefore(newClones, parent[0].nextSibling):
+				parent[0].parentNode.appendChild(newClones);
+		}
+	},
+	
+	appendToFragment: function (els) {
+		var fragment = els[0];
+		
+		if (els.length > 1) {
+			fragment = Karma.temp.fragment.cloneNode(false);
+			
+			for (var i=0; i< els.length; i++)
+				fragment.appendChild(els[i]);
+		}
+		
+		return fragment;
+	}
+});
+
+
+Karma.fn.extend({
 	
 	// walking the DOM, going forward or backward
-	pedal: function(extreme, direction) {
-		var $ = this, 
-			elements = [];
+	pedal: function(extreme, direction, query) {
+		var elements = [];
 
-		for (var i=0; i< $.length; i++) {
-			var next=$[i][direction];
+		for (var i=0; i< this.length; i++) {
+			var next=this[i][direction];
 
 			while(next) {
 				if (next.nodeType == 1) {
@@ -748,26 +607,27 @@ Karma.extend(Karma.fn, {
 	
 		};
 		
-		return Karma(elements).stack($);
+		elements = (Karma.isString(query)) ? Karma.filter(query, Karma.unique(elements)) : Karma.unique(elements);
+		return Karma(elements).stack(this);
 	},
 
-	next: function() {
-		return this.pedal(false, 'nextSibling');
+	next: function(query) {
+		return this.pedal(false, 'nextSibling' ,query);
 	},
 	
-	nextAll: function() {
-		return this.pedal(true, 'nextSibling');
+	nextAll: function(query) {
+		return this.pedal(true, 'nextSibling' ,query);
 	},
 
-	prev: function() {
-		return this.pedal(false, 'previousSibling');
+	prev: function(query) {
+		return this.pedal(false, 'previousSibling' ,query);
 	},
 	
-	prevAll: function() {
-		return this.pedal(true, 'previousSibling');
+	prevAll: function(query) {
+		return this.pedal(true, 'previousSibling' ,query);
 	},
 	
-	siblings: function(includeSelf) {
+	siblings: function(query) {
 		var $ = this, 
 			siblings = [];
 		
@@ -776,25 +636,31 @@ Karma.extend(Karma.fn, {
 				cur = $[i].parentNode;
 			for(var j=0; j<cur.childNodes.length; j++) {
 				var node = cur.childNodes[j]; 
-				if(node.nodeType == 1 && (includeSelf || node != origin))
+				if(node.nodeType == 1 && node != origin)
 					siblings.push(node);
 			}
 		}
 		
-		return Karma(Karma.unique(siblings)).stack(this);
+		siblings = (Karma.isString(query)) ? Karma.filter(query, Karma.unique(siblings)) : Karma.unique(siblings);
+		
+		return Karma(siblings).stack(this);
 	},
 	
-	parent: function() {
+	parent: function(query) {
 		var $ = this,
 			parent = [];
 			
-		for (var i=0; i< $.length; i++)
-			parent.push($[i].parentNode);
+		for (var i=0; i< $.length; i++) {
+			if ($[i].parentNode)
+				parent.push($[i].parentNode);
+		}
+	
+		parent = (Karma.isString(query)) ? Karma.filter(query, Karma.unique(parent)) : Karma.unique(parent);
 			
-		return Karma(Karma.unique(parent)).stack(this);
+		return Karma(parent).stack(this);
 	},
 	
-	ancestors: function(str) {
+	ancestors: function(query) {
 		var $ = this,
 			ancestors = [];
 		
@@ -805,16 +671,12 @@ Karma.extend(Karma.fn, {
 				parent = parent.parentNode;
 			}
 		}
-		
-		ancestors = Karma.unique(ancestors);
-		
-		if(str && Karma.hasSelector())
-			ancestors = Karma.filter(str, ancestors)
+		ancestors = (Karma.isString(query)) ? Karma.filter(query, Karma.unique(ancestors)) : Karma.unique(ancestorss);
 
 		return Karma(ancestors).stack(this);
 	},
 	
-	children: function() {
+	children: function(query) {
 		var $ = this,
 			children = [];
 			
@@ -823,6 +685,9 @@ Karma.extend(Karma.fn, {
 				if($[i].childNodes[j].nodeType == 1)
 					children.push($[i].childNodes[j]);
 		}
+		
+		if (Karma.isString(query))
+			children = Karma.filter(query, children);
 		
 		return Karma(children).stack(this);
 		
@@ -854,23 +719,34 @@ Karma.extend(Karma.fn, {
 	
 	each: function(fn){
 		for (var i=0; i< this.length; i++)
-			fn(this[i]);
+			fn(this[i], i);
 		return this;
 	},
 	
 	map: function(fn) {
 		var ret = [];
 		for (var i=0; i< this.length; i++)
-			ret.push(fn(this[i]));
+			ret.push(fn(this[i], i));
+		return ret;
+	},
+	
+	grep: function(fn) {
+		var ret = [];
+		for (var i=0; i< this.length; i++) {
+			var result = fn(this[i], i);
+			if (result !== false)
+				ret.push(result);
+		}
 		return this;
 	},
-
-	find: function(query) {
+	
+	// possibly need to make the result unique, will see how people use the find method
+	descendents: function(query) {
 		var ret = [];
 		for(var i=0; i<this.length; i++)
 			ret = Karma.merge(ret, Karma.selector(query, this[i]));
 		
-		return ret.length? Karma(ret).stack(this) : Karma([]).stack(this);
+		return Karma(ret).stack(this);
 	},
 	
 	filter: function(query) {
@@ -885,17 +761,21 @@ Karma.extend(Karma.fn, {
 		return query ? Karma(Karma.selector(':not('+query+')', this)).stack(this) : this;
 	}
 });
-Karma.extend(Karma.fn, {
+
+Karma.fn.extend({
+	find: Karma.fn.descendents // why? even I am addicted to using find
+});
+Karma.fn.extend({
 			 
 	attr: function(prop, val){
 		if(Karma.isString(prop) && (Karma.isValue(val))) {
 			for(var i=0; i<this.length; i++) {
-				if (/id|href|name|dir|src|title|type/.test(prop) && Karma.isDefined(this[i][prop]))
-					this[i][prop] = val;		  
-				else if (prop==="class") 
+				if (prop==="class") 
 					this[i]['className'] = val;
-				else if (prop==="style" && Karma.support.cssText) 
+				else if (prop==="style" && Karma.support.cssText)
 					this[i].style.cssText = val;
+				if (/id|href|dir|src|title|type/.test(prop) && Karma.isDefined(this[i][prop]))
+					this[i][prop] = val;
 				else 
 					this[i].setAttribute(prop, val);
 			}
@@ -989,10 +869,23 @@ Karma.extend(Karma.fn, {
 		}
 		// getting value
 		return (this[0] && Karma.isString(this[0].value)) ? this[0].value : null;
+	},
+	
+	serialize: function() {
+		var ret = '';
+		for(var i=0; i< this.length; i++) {
+			// do not use a global name for name attribute, seems to be deprecated
+			var name = this[i].getAttribute('name');
+			if (name) {
+				var value = this[i].getAttribute('value') || '';
+				ret += name + '=' + value + '&';
+			}
+		}
+		return ret.substring(0, ret.length-1);
 	}
 
 });
-Karma.extend(Karma, {
+Karma.extend({
 
 	ajax: function(o) {
 		
@@ -1034,13 +927,12 @@ Karma.extend(Karma, {
 	}
 
 });
-Karma.extend(Karma, {
+Karma.extend({
 
-	getScript: function(opts) {
+	include: function(opts) {
 		
 		opts = Karma.extend({
-			type: 'script',
-			callback: function(){}					
+			success: function(){}					
 		}, opts);
 	
 		var counter = 0;
@@ -1048,61 +940,27 @@ Karma.extend(Karma, {
 		// getting the scripts after onDOMready
 		// reason: if you want to insert the script before onDOMready, please use HTML instead because you are not loading it on use
 		// another reason: IE bombs if before onDOMready
-		// why not stick in <HEAD>? Won't work in XML but also cause the bomb in IE above
+		// why not stick in <HEAD>? Won't work in XML
 		Karma(function(){ //onDOMready
 			// loop through all the urls
-			var $el,
-				rand = Math.floor(Math.random()*100000);
+			var $el;
 			
 			for (var i = 0; i < opts.url.length; i++) {
-				
-				// is it CSS or SCRIPT??
-				if (opts.type.toLowerCase() == 'script') {
-					$el = document.createElement('SCRIPT');
-					$el.type = 'text/javascript';
-					$el.src = opts.url[i];
-					document.documentElement.appendChild($el);
-					$el.onreadystatechange = $el.onload = function(){
-						counter++;
-						if (counter == opts.url.length) {
-							setTimeout(function(){ opts.callback(); }, 40); // weird hack, opera fails if no timeout 
-						}
-					};
-				}
-				// we populate all the linked styles first
-				/*else if (opts.type.toLowerCase() == 'style') {
-					// we use the knowledge the CSS blocks scripts
-					$el = Karma('<link type="text/css" rel="stylesheet" href="'+opts.url[i]+'"></link>')[0];
-					document.documentElement.appendChild($el);
-					$($el).on('load', function(){
-						var timer = setInterval(function(){
-							if (Karma.temp[rand]) {
-								opts.callback();
-								clearInterval(timer);
-							}
-						}, 88);
-					
-					});
-				}*/
-			}
-			// then we add a script, once the script fires, it means the linked style has been loaded
-			/*if (opts.type.toLowerCase() == 'style') {
 				$el = document.createElement('SCRIPT');
-				$el.innerHTML = 'Karma.temp['+rand+'] = true;';
+				$el.type = 'text/javascript';
+				$el.src = opts.url[i];
 				document.documentElement.appendChild($el);
-					
-				var timer = setInterval(function(){
-					if (Karma.temp[rand]) {
-						opts.callback();
-						clearInterval(timer);
-					}
-				}, 88);
-			}*/
+				$el.onreadystatechange = $el.onload = function(){
+					counter++;
+					if (counter == opts.url.length)
+						setTimeout(function(){ opts.success(); }, 40); // weird hack, opera fails if no timeout 
+				};
+			}
 		});
 	}
 });
 		
-Karma.extend(Karma.fn, {
+Karma.fn.extend({
 
 	on: function(str, fn) {
 		if (!str || !this.length || !fn) return this;
@@ -1128,11 +986,9 @@ Karma.extend(Karma.fn, {
 				else if (ns.length == 2)
 					$.KarmaEvent[ns[0]][ns[1]] = fn;
 
-				try { $['on'+ns[0]] = Karma.event.caller; } 
-				finally{ $ = null; };
+				try { $['on'+ns[0]] = Karma.event.caller; } finally{ $ = null; };
 			}
 		}
-		Karma.event.functions.push(fn);
 		return this;
 	},
 		
@@ -1166,7 +1022,7 @@ Karma.extend(Karma.fn, {
 	
 	
 	
-	simulate: function(eventName) {
+	fire: function(eventName) {
 		try {
 			for(var i=0; i<this.length; i++)
 				var element = this[i];
@@ -1186,7 +1042,7 @@ Karma.extend(Karma.fn, {
 					element.dispatchEvent(event);
 				}
 			}
-			// m$, wow easier! one of the odd moments in javascript
+			// m$ methods
 			else if(Karma.support.createEventObject){
 				element = (element === document || element === window ) ? document.documentElement : element;
 			
@@ -1387,15 +1243,18 @@ if(Karma.support.createEvent) {
 }
 
 Karma.event = Karma.event || {};
-Karma.event.functions = [];
 Karma.event.caller = function(e) {
 	e = window.event || e;
-
+	
+	// some basic normalization of event
 	if(!e.stopPropagation && window.event) 
 		e.stopPropagation = function(){ window.event.cancelBubble = true; };
 	
 	if(!Karma.support.preventDefault && window.event)
 		e.preventDefault = function(){ window.event.returnValue = false; };
+	
+	if(!e.srcElement) e.srcElement = this;
+	if(!e.target) e.target = this;
 	
 	if(this.KarmaEvent && this.KarmaEvent[e.type]) {
 		for(var functions in this.KarmaEvent[e.type]) {
@@ -1406,10 +1265,9 @@ Karma.event.caller = function(e) {
 		}
 	}
 }
-Karma.extend(Karma.fn, {
-			 
-	css: function(property, value) {
-		if (property && Karma.isValue(value))
+Karma.fn.extend({
+	style: function(property, value) {
+		if (Karma.isString(property) && Karma.isValue(value))
 			return this.setStyle(property, value);
 			
 		if (Karma.isObject(property)) {
@@ -1429,7 +1287,7 @@ Karma.extend(Karma.fn, {
 				// webkit and opera support filter, which is BS
 				if(Karma.support.opacity) this[i].style.opacity = value;
 				// if we have full opacity, better to remove it to restore the antialiasing ablity of IE
-				else if(Karma.support.filter) this[i].style.filter = (parseInt(value) == 1) ? '' : 'alpha(opacity=' + (value * 100) + ')';
+				else if(Karma.support.filter) this[i].style.filter = (parseInt(value, 10) == 1) ? '' : 'alpha(opacity=' + (value * 100) + ')';
 				
 			}
 			
@@ -1495,55 +1353,46 @@ Karma.extend(Karma.fn, {
 		if (this[0].currentStyle) 
 			return this[0].currentStyle[property];
 			
-		var computed = document.defaultView.getComputedStyle(this[0], null)[property],
-			color = (computed + '').match(/rgba?\([\d\s,]+\)/);
+		var computed = document.defaultView.getComputedStyle(this[0], null)[property];
+		
+		if (!computed.length)
+			computed = this[0].style[property];
 			
-		if (color) {
-			var rgb = color[0].match(/\d{1,3}/g);
-			computed = Karma.rgbToHex(rgb);
+		if (property.toLowerCase().indexOf('color') >= 0) {
+			var color = computed.match(/rgba?\([\d\s,]+\)/);
+			if (color)
+				computed = Karma.rgbToHex(color[0].match(/\d{1,3}/g));
 		}
 		
-		// return Karma.isString(computed) ? computed.length > 0 ? computed : 0 : computed;
 		return computed;
 	},
 	
 	dimension: function(type){
 		if(!this.length) return null;
 
-		// special case, these should not be 0
-		if (this[0] === window || this[0] === document || this[0] === document.documentElement)
-			return (this[0]['client'+type] || window['client'+type] || document.documentElement['client'+type] || document.body['client'+type]);
+		if (this[0] === window)
+			return (this[0]['client'+type] || this[0]['offset'+type] || window['client'+type] || document.documentElement['client'+type] || document.body['client'+type]);
+			
+		if (this[0] === document.documentElement || this[0] === document) {
+			var val = document.documentElement['offset'+type] || document.documentElement['client'+type];
+			return val < document.body['offset'+type] ? document.body['offset'+type] : val;
+		}
 		
 		return this[0]['offset'+type];
 	},
 	
-	width: function(){
-		return this.dimension('Width');
+	width: function(val){
+		return Karma.isValue(val) ? this.setStyle('width', val) : this.dimension('Width');
 	},
 	
-	height: function(){
-		return this.dimension('Height');
+	height: function(val){
+		return Karma.isValue(val) ? this.setStyle('height', val) : this.dimension('Height');
 	}
 });
 
+Karma.fn.css = Karma.fn.style;
+
 Karma.extend(Karma, {
-	// calculates current window viewport
-	/*
-	viewport: function(){
-		var h = window.innerHeight || document.documentElement.clientHeight || document.body.clientHeight,
-			w = window.innerWidth || document.documentElement.clientWidth || document.body.clientWidth,
-			left = window.pageXOffset || document.documentElement.scrollLeft || document.body.scrollLeft,
-			top = window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop;
-		
-		return {
-			top: top,
-			left: left,
-			right: left + w,
-			bottom: top + h
-		};
-	},
-	*/
-	
 	rgbToHex: function(array){
 		if (array.length < 3) return null;
 		if (array.length == 4 && array[3] == 0 && !array) return 'transparent';
@@ -1553,34 +1402,57 @@ Karma.extend(Karma, {
 			hex.push((bit.length == 1) ? '0' + bit : bit);
 		}
 		return '#' + hex.join('');
-	}/*,
+	}
 	
+	/*,
 	camelCase: function(property){
 		return property.replace(/\-(\w)/g, function(all, letter){ return letter.toUpperCase();	});
 	}*/
 	
 });
-Karma.extend(Karma.fn, {
-			 
+Karma.fn.extend({
+	/*
+	// visibility hidden ? BAH, I won't support 
+	show: function(){
+		var hidden = Karma.filter(':hidden', this);
+		for(var i=0; i<hidden.length; i++)
+			$(hidden).css('display', 'block');
+
+		return this;
+	},
+	// visibility visible ?
+	hide: function(){
+		var visible = Karma.filter(':visible', this);
+		for(var i=0; i<visible.length; i++)
+			$(visible).css('display', 'none');
+		return this;
+	},
+	*/		 
 	stop: function(){
 		for(var i=0; i<this.length; i++)
 			if(this[i].KarmaFX) this[i].KarmaFX = null;
 		
 		return this;
 	},
-
-	animate: function(attributes, duration, callback, easing){
+	
+	// FX can be done faster, parse out a cssText and set it instead of setting css on every property (to reduce reflow)
+	// have to test if my conjecture is true or not
+	// eww it might be ugly and expensive to turn camelCase into hyphenated-form
+	// if I implement a hash table, it will bloat the code quite a bit as there are A LOT of CSS properties
+	// I guess this idea is dead for now until I figure out a way
+	animate: function(attributes, duration, callback, easing, step){
 		if (!Karma.isObject(attributes) || !this.length) return this;
 		
 		// do this for scoping issues with internal functions
-		var els  = this;
-		
+		//var els  = this;
+		var els = Karma.filter(':visible', this);
 		// default values
 		duration = duration || 500;
 		easing = easing || Karma.easing.global;
 		callback = callback || function(){};
+		step = step || function(){};
 		
-		for(var i=0; i<this.length; i++) {
+		for(var i=0; i<els.length; i++) {
 			// setup initial values
 			els[i].KarmaFX = els[i].KarmaFX || [];
 			
@@ -1589,7 +1461,8 @@ Karma.extend(Karma.fn, {
 				end: {},
 				duration: duration,
 				callback: callback,
-				easing: easing
+				easing: easing,
+				step: step
 			};
 			
 			var $curEl = Karma(els[i]);
@@ -1600,9 +1473,9 @@ Karma.extend(Karma.fn, {
 				// get the current unanimated attribute
 				FX.start[prop] = $curEl.getStyle(prop);
 				if (Karma.isString(FX.start[prop]) && FX.start[prop].indexOf('px') > 0) {
-					FX.start[prop] = parseInt(FX.start[prop]);
+					FX.start[prop] = parseInt(FX.start[prop], 10);
 				}
-				// set the final attribute if they are in NUMBERS or PX
+				// set the final attribute if they are in NUMBERS
 				if (Karma.isNumber(attributes[prop]))
 					FX.end[prop] = attributes[prop];
 				
@@ -1615,13 +1488,13 @@ Karma.extend(Karma.fn, {
 						FX.end[prop] = (FX.start[prop] - 0) + parseFloat(attributes[prop]);
 					}
 
-					else if (val.indexOf('+') === 0)
-						FX.end[prop] = parseInt(FX.start[prop]) + parseInt($curEl.setStyle(prop, val.substr(1)).getStyle(prop)); // using - 0 to cast into numbers
+					else if (val.indexOf('+=') === 0)
+						FX.end[prop] = parseInt(FX.start[prop], 10) + parseInt($curEl.setStyle(prop, val.substr(2)).getStyle(prop), 10);
 
+					else if (val.indexOf('-=') === 0)
+						FX.end[prop] = parseInt(FX.start[prop], 10) - parseInt($curEl.setStyle(prop, val.substr(2)).getStyle(prop), 10);
 
-					else if (val.indexOf('-') === 0)
-						FX.end[prop] = parseInt(FX.start[prop]) - parseInt($curEl.setStyle(prop, val.substr(1)).getStyle(prop));
-
+					// set the final attribute if they are in PIXELS, no calculation
 					else if (attributes[prop].indexOf('px') > 0) {
 						FX.end[prop] = attributes[prop];
 					}
@@ -1636,7 +1509,7 @@ Karma.extend(Karma.fn, {
 		}
 		
 		// if first iteration in a an animation que then run, the function will look for subsequent queues that have been added after it has been run
-		if (this[0].KarmaFX.length === 1) {
+		if (els[0].KarmaFX.length === 1) {
 			var iter = 0,
 				startTimer = (new Date()).getTime(),
 				endTimer = els[0].KarmaFX ? startTimer + els[0].KarmaFX[iter].duration : 0,
@@ -1656,20 +1529,22 @@ Karma.extend(Karma.fn, {
 				else { 
 					completeAnimation();
 				}
-			}, 20);
+			}, 25);
 			
 			var setCurrentFrameAttr = function(elapsed, attributes){
 				for(var i=0; i<els.length; i++) {
-					if (els[i].KarmaFX)
+					if (els[i].KarmaFX) {
+						// just executing on every step
+						els[i].KarmaFX[iter].step();
 						for (var prop in attributes) {
-							var startVal = (prop == 'opacity') ? parseFloat(els[i].KarmaFX[iter].start[prop]) : parseInt(els[i].KarmaFX[iter].start[prop]),
-								endVal = (prop == 'opacity') ? parseFloat(els[i].KarmaFX[iter].end[prop]) : parseInt(els[i].KarmaFX[iter].end[prop]),
+							var startVal = (prop == 'opacity') ? parseFloat(els[i].KarmaFX[iter].start[prop]) : parseInt(els[i].KarmaFX[iter].start[prop], 10),
+								endVal = (prop == 'opacity') ? parseFloat(els[i].KarmaFX[iter].end[prop]) : parseInt(els[i].KarmaFX[iter].end[prop], 10),
 								duration = els[0].KarmaFX[iter].duration,
 								// using the current easing function, put in (start value, end value, elapsed time, and the total duration)
 								curval = els[i].KarmaFX[iter].easing(startVal, endVal, elapsed, duration);
-
 							Karma(els[i]).setStyle(prop, curval);
 						}
+					}
 				}
 			}
 			
@@ -1685,10 +1560,10 @@ Karma.extend(Karma.fn, {
 				// if there's a callback, call now with scope as window
 				if (els[0].KarmaFX && els[0].KarmaFX[iter].callback) els[0].KarmaFX[iter].callback(Karma.makeArray(els));
 				
-				// up the next item in the queue
+				// up the next item in the animation queue
 				iter++;
 				
-				// if there's no next item				
+				// if there's no next item, do a clean up
 				if(els[0].KarmaFX && !els[0].KarmaFX[iter]) {
 					for(var i=0; i<els.length; i++) {
 						if(els[i].KarmaFX); els[i].KarmaFX = null;
@@ -1719,7 +1594,7 @@ Karma.extend(Karma.fn, {
 						else { 
 							completeAnimation();
 						}
-					}, 20);
+					}, 25);
 					
 				}
 				
@@ -1739,13 +1614,15 @@ Karma.easing = {
 
 Karma.easing.global = Karma.easing.linear;
 
-Karma.extend(Karma, {
+Karma.extend({
 			 
-	// method to namespace function, taking a chapter from YUI
+	// method to namespace function, taking a chapter from YUI,
+	// Ariel Flesler created this function, during a discussion in jQuery mailing list when I was a n00b using eval
+	// http://groups.google.com/group/jquery-en/browse_thread/thread/95d1ceabe4bda4eb/c6fd0c270f91426e?q=#c6fd0c270f91426e
 	namespace: function(name, root) {
 		if (Karma.isString(name)) {
 			// explode namespace with delimiter
-		    name=name.split(".");
+		    name = name.split(".");
 			// root is defaulted to window obj
 		    var ns = root || window;
 			// loop through each level of the namespace
@@ -1756,8 +1633,7 @@ Karma.extend(Karma, {
 				ns = ns[nm] || ( ns[nm] = {} ); 
 				
 				if (i == name.length-1) 
-					return ns;
-
+					return (typeof ns == 'function' || typeof ns == 'object') ? ns: false;
 			}
 		}
 	},
@@ -1769,13 +1645,13 @@ Karma.extend(Karma, {
 	},
 			 
 	grep: function(o, fn) {
-		var array = [];
+		var ret = [];
 		// Go through the array, only saving the items that pass the validator function
 		for ( var i = 0; i < o.length; i++ )
-			if (!fn(o[i], i) === false)
-				array.push( o[i] );
+			if (fn(o[i], i) !== false)
+				ret.push( o[i] );
 
-		return array;
+		return ret;
 	},
 
 	inArray: function(el, o){
@@ -1799,11 +1675,10 @@ Karma.extend(Karma, {
 	}
 });
 
-
-Karma['Class'] = function(opts){
+Karma.Class = function(opts){
 
 	opts.constructor = opts.constructor || function(){};
-	opts.constructor.extend = function(opts){
+	opts.constructor.add = function(opts){
 		for (var prop in opts)
 			opts.constructor.prototype[prop] = opts[prop];
 	};
@@ -2800,13 +2675,23 @@ window.Sizzle = Sizzle;
 })();
 
 
-if (this.Sizzle) {
+if (Karma.isFunction(this.Sizzle)) {
 	Karma.selector = Sizzle;
 	Karma.filter = Sizzle.filter;
-	Karma.selector.pseudo = Sizzle.selectors.filters;
+	Karma.pseudo = Sizzle.selectors.filters;
+	
+	// 2 filters below from the jQuery project
+	Sizzle.selectors.filters.visible = function(el){
+		return el.offsetWidth > 0 || el.offsetHeight > 0;
+	};
+	
+	Sizzle.selectors.filters.hidden = function(el){
+		return el.offsetWidth === 0 && el.offsetHeight === 0;
+	};
 }
-else if (this.Sly) {
+else if (Karma.isFunction(this.Sly)) {
 	Karma.selector = Sly.search;
 	Karma.filter = Sly.filter;
 }
-})();// end self-executing anon
+
+})();

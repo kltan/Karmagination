@@ -10,7 +10,7 @@ $source = array(
 	'source/traverse.js',
 	'source/attribute.js',
 	'source/ajax.js',
-	'source/get.js',
+	'source/include.js',
 	'source/event.js',
 	'source/css.js',
 	'source/fx.js',
@@ -22,7 +22,7 @@ $source = array(
 );
 
 $jQuery = true;
-//$jQuery = false;
+$jQuery = false;
 
 $tests = true;
 $tests = false;

@@ -1,10 +1,12 @@
-Karma.extend(Karma, {
+Karma.extend({
 			 
-	// method to namespace function, taking a chapter from YUI
+	// method to namespace function, taking a chapter from YUI,
+	// Ariel Flesler created this function, during a discussion in jQuery mailing list when I was a n00b using eval
+	// http://groups.google.com/group/jquery-en/browse_thread/thread/95d1ceabe4bda4eb/c6fd0c270f91426e?q=#c6fd0c270f91426e
 	namespace: function(name, root) {
 		if (Karma.isString(name)) {
 			// explode namespace with delimiter
-		    name=name.split(".");
+		    name = name.split(".");
 			// root is defaulted to window obj
 		    var ns = root || window;
 			// loop through each level of the namespace
@@ -15,8 +17,7 @@ Karma.extend(Karma, {
 				ns = ns[nm] || ( ns[nm] = {} ); 
 				
 				if (i == name.length-1) 
-					return ns;
-
+					return (typeof ns == 'function' || typeof ns == 'object') ? ns: false;
 			}
 		}
 	},
@@ -28,13 +29,13 @@ Karma.extend(Karma, {
 	},
 			 
 	grep: function(o, fn) {
-		var array = [];
+		var ret = [];
 		// Go through the array, only saving the items that pass the validator function
 		for ( var i = 0; i < o.length; i++ )
-			if (!fn(o[i], i) === false)
-				array.push( o[i] );
+			if (fn(o[i], i) !== false)
+				ret.push( o[i] );
 
-		return array;
+		return ret;
 	},
 
 	inArray: function(el, o){

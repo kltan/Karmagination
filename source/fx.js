@@ -1,24 +1,46 @@
-Karma.extend(Karma.fn, {
-			 
+Karma.fn.extend({
+	/*
+	// visibility hidden ? BAH, I won't support
+	show: function(){
+		var hidden = Karma.filter(':hidden', this);
+		for(var i=0; i<hidden.length; i++)
+			$(hidden).css('display', 'block');
+
+		return this;
+	},
+	// visibility visible ?
+	hide: function(){
+		var visible = Karma.filter(':visible', this);
+		for(var i=0; i<visible.length; i++)
+			$(visible).css('display', 'none');
+		return this;
+	},
+	*/		 
 	stop: function(){
 		for(var i=0; i<this.length; i++)
 			if(this[i].KarmaFX) this[i].KarmaFX = null;
 		
 		return this;
 	},
-
-	animate: function(attributes, duration, callback, easing){
+	
+	// FX can be done faster, parse out a cssText and set it instead of setting css on every property (to reduce reflow)
+	// have to test if my conjecture is true or not
+	// eww it might be ugly and expensive to turn camelCase into hyphenated-form
+	// if I implement a hash table, it will bloat the code quite a bit as there are A LOT of CSS properties
+	// I guess this idea is dead for now until I figure out a way
+	animate: function(attributes, duration, callback, easing, step){
 		if (!Karma.isObject(attributes) || !this.length) return this;
 		
 		// do this for scoping issues with internal functions
-		var els  = this;
-		
+		//var els  = this;
+		var els = Karma.filter(':visible', this);
 		// default values
 		duration = duration || 500;
 		easing = easing || Karma.easing.global;
 		callback = callback || function(){};
+		step = step || function(){};
 		
-		for(var i=0; i<this.length; i++) {
+		for(var i=0; i<els.length; i++) {
 			// setup initial values
 			els[i].KarmaFX = els[i].KarmaFX || [];
 			
@@ -27,7 +49,8 @@ Karma.extend(Karma.fn, {
 				end: {},
 				duration: duration,
 				callback: callback,
-				easing: easing
+				easing: easing,
+				step: step
 			};
 			
 			var $curEl = Karma(els[i]);
@@ -38,9 +61,9 @@ Karma.extend(Karma.fn, {
 				// get the current unanimated attribute
 				FX.start[prop] = $curEl.getStyle(prop);
 				if (Karma.isString(FX.start[prop]) && FX.start[prop].indexOf('px') > 0) {
-					FX.start[prop] = parseInt(FX.start[prop]);
+					FX.start[prop] = parseInt(FX.start[prop], 10);
 				}
-				// set the final attribute if they are in NUMBERS or PX
+				// set the final attribute if they are in NUMBERS
 				if (Karma.isNumber(attributes[prop]))
 					FX.end[prop] = attributes[prop];
 				
@@ -53,13 +76,13 @@ Karma.extend(Karma.fn, {
 						FX.end[prop] = (FX.start[prop] - 0) + parseFloat(attributes[prop]);
 					}
 
-					else if (val.indexOf('+') === 0)
-						FX.end[prop] = parseInt(FX.start[prop]) + parseInt($curEl.setStyle(prop, val.substr(1)).getStyle(prop)); // using - 0 to cast into numbers
+					else if (val.indexOf('+=') === 0)
+						FX.end[prop] = parseInt(FX.start[prop], 10) + parseInt($curEl.setStyle(prop, val.substr(2)).getStyle(prop), 10);
 
+					else if (val.indexOf('-=') === 0)
+						FX.end[prop] = parseInt(FX.start[prop], 10) - parseInt($curEl.setStyle(prop, val.substr(2)).getStyle(prop), 10);
 
-					else if (val.indexOf('-') === 0)
-						FX.end[prop] = parseInt(FX.start[prop]) - parseInt($curEl.setStyle(prop, val.substr(1)).getStyle(prop));
-
+					// set the final attribute if they are in PIXELS, no calculation
 					else if (attributes[prop].indexOf('px') > 0) {
 						FX.end[prop] = attributes[prop];
 					}
@@ -74,7 +97,7 @@ Karma.extend(Karma.fn, {
 		}
 		
 		// if first iteration in a an animation que then run, the function will look for subsequent queues that have been added after it has been run
-		if (this[0].KarmaFX.length === 1) {
+		if (els[0].KarmaFX.length === 1) {
 			var iter = 0,
 				startTimer = (new Date()).getTime(),
 				endTimer = els[0].KarmaFX ? startTimer + els[0].KarmaFX[iter].duration : 0,
@@ -94,20 +117,22 @@ Karma.extend(Karma.fn, {
 				else { 
 					completeAnimation();
 				}
-			}, 20);
+			}, 25);
 			
 			var setCurrentFrameAttr = function(elapsed, attributes){
 				for(var i=0; i<els.length; i++) {
-					if (els[i].KarmaFX)
+					if (els[i].KarmaFX) {
+						// just executing on every step
+						els[i].KarmaFX[iter].step();
 						for (var prop in attributes) {
-							var startVal = (prop == 'opacity') ? parseFloat(els[i].KarmaFX[iter].start[prop]) : parseInt(els[i].KarmaFX[iter].start[prop]),
-								endVal = (prop == 'opacity') ? parseFloat(els[i].KarmaFX[iter].end[prop]) : parseInt(els[i].KarmaFX[iter].end[prop]),
+							var startVal = (prop == 'opacity') ? parseFloat(els[i].KarmaFX[iter].start[prop]) : parseInt(els[i].KarmaFX[iter].start[prop], 10),
+								endVal = (prop == 'opacity') ? parseFloat(els[i].KarmaFX[iter].end[prop]) : parseInt(els[i].KarmaFX[iter].end[prop], 10),
 								duration = els[0].KarmaFX[iter].duration,
 								// using the current easing function, put in (start value, end value, elapsed time, and the total duration)
 								curval = els[i].KarmaFX[iter].easing(startVal, endVal, elapsed, duration);
-
 							Karma(els[i]).setStyle(prop, curval);
 						}
+					}
 				}
 			}
 			
@@ -123,10 +148,10 @@ Karma.extend(Karma.fn, {
 				// if there's a callback, call now with scope as window
 				if (els[0].KarmaFX && els[0].KarmaFX[iter].callback) els[0].KarmaFX[iter].callback(Karma.makeArray(els));
 				
-				// up the next item in the queue
+				// up the next item in the animation queue
 				iter++;
 				
-				// if there's no next item				
+				// if there's no next item, do a clean up
 				if(els[0].KarmaFX && !els[0].KarmaFX[iter]) {
 					for(var i=0; i<els.length; i++) {
 						if(els[i].KarmaFX); els[i].KarmaFX = null;
@@ -157,7 +182,7 @@ Karma.extend(Karma.fn, {
 						else { 
 							completeAnimation();
 						}
-					}, 20);
+					}, 25);
 					
 				}
 				

@@ -1,14 +1,14 @@
-Karma.extend(Karma.fn, {
+Karma.fn.extend({
 			 
 	attr: function(prop, val){
 		if(Karma.isString(prop) && (Karma.isValue(val))) {
 			for(var i=0; i<this.length; i++) {
-				if (/id|href|name|dir|src|title|type/.test(prop) && Karma.isDefined(this[i][prop]))
-					this[i][prop] = val;		  
-				else if (prop==="class") 
+				if (prop==="class") 
 					this[i]['className'] = val;
-				else if (prop==="style" && Karma.support.cssText) 
+				else if (prop==="style" && Karma.support.cssText)
 					this[i].style.cssText = val;
+				if (/id|href|dir|src|title|type/.test(prop) && Karma.isDefined(this[i][prop]))
+					this[i][prop] = val;
 				else 
 					this[i].setAttribute(prop, val);
 			}
@@ -102,6 +102,19 @@ Karma.extend(Karma.fn, {
 		}
 		// getting value
 		return (this[0] && Karma.isString(this[0].value)) ? this[0].value : null;
+	},
+	
+	serialize: function() {
+		var ret = '';
+		for(var i=0; i< this.length; i++) {
+			// do not use a global name for name attribute, seems to be deprecated
+			var name = this[i].getAttribute('name');
+			if (name) {
+				var value = this[i].getAttribute('value') || '';
+				ret += name + '=' + value + '&';
+			}
+		}
+		return ret.substring(0, ret.length-1);
 	}
 
 });

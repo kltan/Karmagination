@@ -1,4 +1,4 @@
-Karma.extend(Karma.fn, {
+Karma.fn.extend({
 
 	on: function(str, fn) {
 		if (!str || !this.length || !fn) return this;
@@ -24,11 +24,9 @@ Karma.extend(Karma.fn, {
 				else if (ns.length == 2)
 					$.KarmaEvent[ns[0]][ns[1]] = fn;
 
-				try { $['on'+ns[0]] = Karma.event.caller; } 
-				finally{ $ = null; };
+				try { $['on'+ns[0]] = Karma.event.caller; } finally{ $ = null; };
 			}
 		}
-		Karma.event.functions.push(fn);
 		return this;
 	},
 		
@@ -62,7 +60,7 @@ Karma.extend(Karma.fn, {
 	
 	
 	
-	simulate: function(eventName) {
+	fire: function(eventName) {
 		try {
 			for(var i=0; i<this.length; i++)
 				var element = this[i];
@@ -82,7 +80,7 @@ Karma.extend(Karma.fn, {
 					element.dispatchEvent(event);
 				}
 			}
-			// m$, wow easier! one of the odd moments in javascript
+			// m$ methods
 			else if(Karma.support.createEventObject){
 				element = (element === document || element === window ) ? document.documentElement : element;
 			
@@ -283,15 +281,18 @@ if(Karma.support.createEvent) {
 }
 
 Karma.event = Karma.event || {};
-Karma.event.functions = [];
 Karma.event.caller = function(e) {
 	e = window.event || e;
-
+	
+	// some basic normalization of event
 	if(!e.stopPropagation && window.event) 
 		e.stopPropagation = function(){ window.event.cancelBubble = true; };
 	
 	if(!Karma.support.preventDefault && window.event)
 		e.preventDefault = function(){ window.event.returnValue = false; };
+	
+	if(!e.srcElement) e.srcElement = this;
+	if(!e.target) e.target = this;
 	
 	if(this.KarmaEvent && this.KarmaEvent[e.type]) {
 		for(var functions in this.KarmaEvent[e.type]) {

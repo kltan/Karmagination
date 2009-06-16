@@ -1,7 +1,6 @@
-Karma.extend(Karma.fn, {
-			 
-	css: function(property, value) {
-		if (property && Karma.isValue(value))
+Karma.fn.extend({
+	style: function(property, value) {
+		if (Karma.isString(property) && Karma.isValue(value))
 			return this.setStyle(property, value);
 			
 		if (Karma.isObject(property)) {
@@ -21,7 +20,7 @@ Karma.extend(Karma.fn, {
 				// webkit and opera support filter, which is BS
 				if(Karma.support.opacity) this[i].style.opacity = value;
 				// if we have full opacity, better to remove it to restore the antialiasing ablity of IE
-				else if(Karma.support.filter) this[i].style.filter = (parseInt(value) == 1) ? '' : 'alpha(opacity=' + (value * 100) + ')';
+				else if(Karma.support.filter) this[i].style.filter = (parseInt(value, 10) == 1) ? '' : 'alpha(opacity=' + (value * 100) + ')';
 				
 			}
 			
@@ -87,55 +86,46 @@ Karma.extend(Karma.fn, {
 		if (this[0].currentStyle) 
 			return this[0].currentStyle[property];
 			
-		var computed = document.defaultView.getComputedStyle(this[0], null)[property],
-			color = (computed + '').match(/rgba?\([\d\s,]+\)/);
+		var computed = document.defaultView.getComputedStyle(this[0], null)[property];
+		
+		if (!computed.length)
+			computed = this[0].style[property];
 			
-		if (color) {
-			var rgb = color[0].match(/\d{1,3}/g);
-			computed = Karma.rgbToHex(rgb);
+		if (property.toLowerCase().indexOf('color') >= 0) {
+			var color = computed.match(/rgba?\([\d\s,]+\)/);
+			if (color)
+				computed = Karma.rgbToHex(color[0].match(/\d{1,3}/g));
 		}
 		
-		// return Karma.isString(computed) ? computed.length > 0 ? computed : 0 : computed;
 		return computed;
 	},
 	
 	dimension: function(type){
 		if(!this.length) return null;
 
-		// special case, these should not be 0
-		if (this[0] === window || this[0] === document || this[0] === document.documentElement)
-			return (this[0]['client'+type] || window['client'+type] || document.documentElement['client'+type] || document.body['client'+type]);
+		if (this[0] === window)
+			return (this[0]['client'+type] || this[0]['offset'+type] || window['client'+type] || document.documentElement['client'+type] || document.body['client'+type]);
+			
+		if (this[0] === document.documentElement || this[0] === document) {
+			var val = document.documentElement['offset'+type] || document.documentElement['client'+type];
+			return val < document.body['offset'+type] ? document.body['offset'+type] : val;
+		}
 		
 		return this[0]['offset'+type];
 	},
 	
-	width: function(){
-		return this.dimension('Width');
+	width: function(val){
+		return Karma.isValue(val) ? this.setStyle('width', val) : this.dimension('Width');
 	},
 	
-	height: function(){
-		return this.dimension('Height');
+	height: function(val){
+		return Karma.isValue(val) ? this.setStyle('height', val) : this.dimension('Height');
 	}
 });
 
+Karma.fn.css = Karma.fn.style;
+
 Karma.extend(Karma, {
-	// calculates current window viewport
-	/*
-	viewport: function(){
-		var h = window.innerHeight || document.documentElement.clientHeight || document.body.clientHeight,
-			w = window.innerWidth || document.documentElement.clientWidth || document.body.clientWidth,
-			left = window.pageXOffset || document.documentElement.scrollLeft || document.body.scrollLeft,
-			top = window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop;
-		
-		return {
-			top: top,
-			left: left,
-			right: left + w,
-			bottom: top + h
-		};
-	},
-	*/
-	
 	rgbToHex: function(array){
 		if (array.length < 3) return null;
 		if (array.length == 4 && array[3] == 0 && !array) return 'transparent';
@@ -145,8 +135,9 @@ Karma.extend(Karma, {
 			hex.push((bit.length == 1) ? '0' + bit : bit);
 		}
 		return '#' + hex.join('');
-	}/*,
+	}
 	
+	/*,
 	camelCase: function(property){
 		return property.replace(/\-(\w)/g, function(all, letter){ return letter.toUpperCase();	});
 	}*/

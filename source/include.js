@@ -11,7 +11,6 @@ Karma.extend({
 		// getting the scripts after onDOMready
 		// reason: if you want to insert the script before onDOMready, please use HTML instead because you are not loading it on use
 		// another reason: IE bombs if before onDOMready
-		// why not stick in <HEAD>? Won't work in XML
 		Karma(function(){ //onDOMready
 			// loop through all the urls
 			var $el;

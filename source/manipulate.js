@@ -151,7 +151,14 @@ Karma.fn.extend({
 
 Karma.extend(Karma.temp, {
 	manipulate: function (method, child, parent, query, ret) {
-		var fragment = Karma.temp.appendToFragment(child);
+		var fragment = child[0];
+		
+		if (child.length > 1) {
+			fragment = Karma.temp.fragment.cloneNode(false);
+			
+			for (var i=0; i< child.length; i++)
+				fragment.appendChild(child[i]);
+		}
 	
 		if (Karma.isHTML(query)) {
 			var cloned = [];
@@ -193,19 +200,6 @@ Karma.extend(Karma.temp, {
 				parent[0].parentNode.insertBefore(newClones, parent[0].nextSibling):
 				parent[0].parentNode.appendChild(newClones);
 		}
-	},
-	
-	appendToFragment: function (els) {
-		var fragment = els[0];
-		
-		if (els.length > 1) {
-			fragment = Karma.temp.fragment.cloneNode(false);
-			
-			for (var i=0; i< els.length; i++)
-				fragment.appendChild(els[i]);
-		}
-		
-		return fragment;
 	}
 });
 

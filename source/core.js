@@ -122,11 +122,6 @@ Karma.fn.extend({
 		return this;
 	},
 	
-	// adding self to chain
-	andSelf: function() {
-		return this.KarmaStack.length ? Karma(this).populate(this.KarmaStack[0], this.length).stack(this): Karma(this).stack(this);
-	},
-	
 	// getting into the previous chain
 	end: function() {
 		return this.KarmaStack[0];
@@ -141,7 +136,7 @@ Karma.fn.extend({
 });
 
 Karma.extend({
-
+	
 	/* special thanks to jQuery's cases so I don't have to manually hunt down the special cases myself */	 
 	HTMLtoNode: function(query, context) {
 		context = context || document;
@@ -216,6 +211,8 @@ Karma.extend({
 	isDefined: function(o) { return o !== undefined },
 	// unreliable detection, using documentation to prevent mistake instead
 	isHTML: function(o) { return /^<.+/.test(Karma.trim(o).substring(0,3).toLowerCase()) },
+	isKarma: function(o) { return !!o.isKarma },
+
 	
 	// browser detection, TAKEN FROM MOOTOOLS with modifications, if you are new to JS, !! mean cast as boolean type
 	// learned something new today from BING, a new-old IE feature detection that's probably better

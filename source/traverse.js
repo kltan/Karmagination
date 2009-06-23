@@ -120,35 +120,7 @@ Karma.fn.extend({
 	
 	// get elements as array, return the array
 	get: function() {
-		return this.length ? Karma.makeArray(this) : null;
-	},
-	
-	// adding elements
-	add: function(query) {
-		return query? Karma(this).populate(Karma(query), this.length).stack(this) : Karma(this).stack(this);
-	},
-	
-	each: function(fn){
-		for (var i=0; i< this.length; i++)
-			fn(this[i], i);
-		return this;
-	},
-	
-	map: function(fn) {
-		var ret = [];
-		for (var i=0; i< this.length; i++)
-			ret.push(fn(this[i], i));
-		return ret;
-	},
-	
-	grep: function(fn) {
-		var ret = [];
-		for (var i=0; i< this.length; i++) {
-			var result = fn(this[i], i);
-			if (result !== false)
-				ret.push(result);
-		}
-		return this;
+		return this.length ? Karma.makeArray(this) : [];
 	},
 	
 	// possibly need to make the result unique, will see how people use the find method

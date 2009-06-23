@@ -9,34 +9,34 @@ Karma.extend({
 			contentType: null,
 			loading: function(){},
 			success: function(){},
-			error: function(){}
+			error: function(){},
+			XHR: window.XMLHttpRequest? new XMLHttpRequest(): new ActiveXObject("Microsoft.XMLHTTP")
 		 }, o);
 	
-		var oXHR = window.XMLHttpRequest? new XMLHttpRequest(): new ActiveXObject("Microsoft.XMLHTTP");
+		if (o.XHR === null || o.XHR === undefined) return;
 		
-		if (oXHR === null || oXHR === undefined) return;
-		
-		oXHR.onreadystatechange=function(){
+		o.XHR.onreadystatechange=function(){
 			try {
-				if (oXHR.readyState==4 && !o.successDone){
-					o.success(oXHR.responseText);
+				if (o.XHR.readyState === 4 && !o.successDone){
+					o.success(o.XHR.responseText);
 					o.successDone = true;
 				}
 				
-				if (oXHR.status!=200 && !o.errorDone) {
-					o.error(oXHR.responseText);
+				if (o.XHR.status!=200 && !o.errorDone) {
+					o.error(o.XHR.responseText);
 					o.successDone = true;
 					o.errorDone = true;
 				}
-			}
-			catch(e) {};
+			} catch(e) {};
 		}
 		
 		o.loading();
-		oXHR.open(o.type, o.url, true);
+		o.XHR.open(o.type, o.url, true);
+		
 		if(o.contentType)
-			oXHR.setRequestHeader("Content-Type", o.contentType);
-		oXHR.send(null);
+			o.XHR.setRequestHeader("Content-Type", o.contentType);
+		
+		o.XHR.send(null);
 	}
 
 });

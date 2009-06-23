@@ -1,10 +1,10 @@
 /*!
- * Karmagination 0.3 - Fast and Easy
+ * Karmagination 0.1 - Fast and Easy
  * http://www.karmagination.com
  * Released under the MIT, BSD, and GPL Licenses - Choose one that fit your needs
  * Copyright (c) 2009 Kean L. Tan 
  * Start date: 2009-04-01
- * Last build: 2009-06-15 05:45:28 PM
+ * Last build: 2009-06-22 11:35:05 PM
  *
  * Attribution:
  * CSS and browser detection copyright Valerio Proietti of Mootools
@@ -122,11 +122,6 @@ Karma.fn.extend({
 		return this;
 	},
 	
-	// adding self to chain
-	andSelf: function() {
-		return this.KarmaStack.length ? Karma(this).populate(this.KarmaStack[0], this.length).stack(this): Karma(this).stack(this);
-	},
-	
 	// getting into the previous chain
 	end: function() {
 		return this.KarmaStack[0];
@@ -137,10 +132,10 @@ Karma.fn.extend({
 	
 	// query that created the current instance of Karma
 	query: null,
-	isKarma: 0.3});
+	isKarma: 0.1});
 
 Karma.extend({
-
+	
 	/* special thanks to jQuery's cases so I don't have to manually hunt down the special cases myself */	 
 	HTMLtoNode: function(query, context) {
 		context = context || document;
@@ -215,6 +210,8 @@ Karma.extend({
 	isDefined: function(o) { return o !== undefined },
 	// unreliable detection, using documentation to prevent mistake instead
 	isHTML: function(o) { return /^<.+/.test(Karma.trim(o).substring(0,3).toLowerCase()) },
+	isKarma: function(o) { return !!o.isKarma },
+
 	
 	// browser detection, TAKEN FROM MOOTOOLS with modifications, if you are new to JS, !! mean cast as boolean type
 	// learned something new today from BING, a new-old IE feature detection that's probably better
@@ -374,6 +371,43 @@ Karma.support = {
 
 // run the function to wait for onDOMready
 Karma.ready();
+
+Karma.fn.extend({
+
+	// adding elements
+	add: function(query) {
+		return query? Karma(this).populate(Karma(query), this.length).stack(this) : Karma(this).stack(this);
+	},
+	
+		// adding self to chain
+	andSelf: function() {
+		return this.KarmaStack.length ? Karma(this).populate(this.KarmaStack[0], this.length).stack(this): Karma(this).stack(this);
+	}
+});
+Karma.fn.extend({
+	each: function(fn){
+		for (var i=0; i< this.length; i++)
+			fn(this[i], i);
+		return this;
+	},
+	
+	map: function(fn) {
+		var ret = [];
+		for (var i=0; i< this.length; i++)
+			ret.push(fn(this[i], i));
+		return ret;
+	},
+	
+	grep: function(fn) {
+		var ret = [];
+		for (var i=0; i< this.length; i++) {
+			var result = fn(this[i], i);
+			if (result !== false)
+				ret.push(result);
+		}
+		return this;
+	}
+});
 
 Karma.fn.extend({
 			 
@@ -709,35 +743,7 @@ Karma.fn.extend({
 	
 	// get elements as array, return the array
 	get: function() {
-		return this.length ? Karma.makeArray(this) : null;
-	},
-	
-	// adding elements
-	add: function(query) {
-		return query? Karma(this).populate(Karma(query), this.length).stack(this) : Karma(this).stack(this);
-	},
-	
-	each: function(fn){
-		for (var i=0; i< this.length; i++)
-			fn(this[i], i);
-		return this;
-	},
-	
-	map: function(fn) {
-		var ret = [];
-		for (var i=0; i< this.length; i++)
-			ret.push(fn(this[i], i));
-		return ret;
-	},
-	
-	grep: function(fn) {
-		var ret = [];
-		for (var i=0; i< this.length; i++) {
-			var result = fn(this[i], i);
-			if (result !== false)
-				ret.push(result);
-		}
-		return this;
+		return this.length ? Karma.makeArray(this) : [];
 	},
 	
 	// possibly need to make the result unique, will see how people use the find method
@@ -896,34 +902,34 @@ Karma.extend({
 			contentType: null,
 			loading: function(){},
 			success: function(){},
-			error: function(){}
+			error: function(){},
+			XHR: window.XMLHttpRequest? new XMLHttpRequest(): new ActiveXObject("Microsoft.XMLHTTP")
 		 }, o);
 	
-		var oXHR = window.XMLHttpRequest? new XMLHttpRequest(): new ActiveXObject("Microsoft.XMLHTTP");
+		if (o.XHR === null || o.XHR === undefined) return;
 		
-		if (oXHR === null || oXHR === undefined) return;
-		
-		oXHR.onreadystatechange=function(){
+		o.XHR.onreadystatechange=function(){
 			try {
-				if (oXHR.readyState==4 && !o.successDone){
-					o.success(oXHR.responseText);
+				if (o.XHR.readyState === 4 && !o.successDone){
+					o.success(o.XHR.responseText);
 					o.successDone = true;
 				}
 				
-				if (oXHR.status!=200 && !o.errorDone) {
-					o.error(oXHR.responseText);
+				if (o.XHR.status!=200 && !o.errorDone) {
+					o.error(o.XHR.responseText);
 					o.successDone = true;
 					o.errorDone = true;
 				}
-			}
-			catch(e) {};
+			} catch(e) {};
 		}
 		
 		o.loading();
-		oXHR.open(o.type, o.url, true);
+		o.XHR.open(o.type, o.url, true);
+		
 		if(o.contentType)
-			oXHR.setRequestHeader("Content-Type", o.contentType);
-		oXHR.send(null);
+			o.XHR.setRequestHeader("Content-Type", o.contentType);
+		
+		o.XHR.send(null);
 	}
 
 });
@@ -940,7 +946,6 @@ Karma.extend({
 		// getting the scripts after onDOMready
 		// reason: if you want to insert the script before onDOMready, please use HTML instead because you are not loading it on use
 		// another reason: IE bombs if before onDOMready
-		// why not stick in <HEAD>? Won't work in XML
 		Karma(function(){ //onDOMready
 			// loop through all the urls
 			var $el;
@@ -1412,7 +1417,7 @@ Karma.extend(Karma, {
 });
 Karma.fn.extend({
 	/*
-	// visibility hidden ? BAH, I won't support 
+	// visibility hidden ? BAH, I won't support
 	show: function(){
 		var hidden = Karma.filter(':hidden', this);
 		for(var i=0; i<hidden.length; i++)
@@ -1641,13 +1646,14 @@ Karma.extend({
 	trim: function(str){
 		/* Thanks to Steven Levithan's benchmark on string trimming */
 		// unicode friendly string trim for older browsers that don't catch all whitespaces
-		return str.replace(/^[\s\xA0]+/, '').replace(/[\s\xA0]+$/, ''); 
+		// string.trim() is in JS 1.8.1, supported by FF 3.5
+		return str.trim ? str.trim() : str.replace(/^[\s\xA0]+/, '').replace(/[\s\xA0]+$/, ''); 
 	},
 			 
 	grep: function(o, fn) {
 		var ret = [];
 		// Go through the array, only saving the items that pass the validator function
-		for ( var i = 0; i < o.length; i++ )
+		for (var i = 0; i < o.length; i++)
 			if (fn(o[i], i) !== false)
 				ret.push( o[i] );
 
@@ -1655,7 +1661,7 @@ Karma.extend({
 	},
 
 	inArray: function(el, o){
-		for (var i = 0; i < o.length; i++ )
+		for (var i = 0; i < o.length; i++)
 			if (o[i] === el)
 				return i;
 		return -1;
@@ -1676,20 +1682,22 @@ Karma.extend({
 });
 
 Karma.Class = function(opts){
-
+	
 	opts.constructor = opts.constructor || function(){};
-	opts.constructor.add = function(opts){
-		for (var prop in opts)
-			opts.constructor.prototype[prop] = opts[prop];
+	
+	opts.constructor.add = function(option){
+		for (var prop in option)
+			if (prop !== 'constructor') 
+				opts.constructor.prototype[prop] = option[prop];
 	};
 	
-	opts.constructor.inherits = function(base){
-   		opts.constructor.prototype.__proto__ = base.prototype;
-		opts.constructor.prototype.base = base;
+	opts.constructor.inherit = function(parent){
+   		opts.constructor.prototype.__proto__ = parent.prototype;
+		opts.constructor.prototype.parent = parent;
 	}
 	
 	for (var prop in opts)
-		if (prop != 'constructor')
+		if (prop !== 'constructor') 
 			opts.constructor.prototype[prop] = opts[prop];
 	
 	return opts.constructor;
@@ -2674,24 +2682,17 @@ window.Sizzle = Sizzle;
 
 })();
 
+Karma.selector = Sizzle;
+Karma.filter = Sizzle.filter;
+Karma.pseudo = Sizzle.selectors.filters;
 
-if (Karma.isFunction(this.Sizzle)) {
-	Karma.selector = Sizzle;
-	Karma.filter = Sizzle.filter;
-	Karma.pseudo = Sizzle.selectors.filters;
-	
-	// 2 filters below from the jQuery project
-	Sizzle.selectors.filters.visible = function(el){
-		return el.offsetWidth > 0 || el.offsetHeight > 0;
-	};
-	
-	Sizzle.selectors.filters.hidden = function(el){
-		return el.offsetWidth === 0 && el.offsetHeight === 0;
-	};
-}
-else if (Karma.isFunction(this.Sly)) {
-	Karma.selector = Sly.search;
-	Karma.filter = Sly.filter;
-}
+// 2 filters below from the jQuery project
+Sizzle.selectors.filters.visible = function(el){
+	return el.offsetWidth > 0 || el.offsetHeight > 0;
+};
+
+Sizzle.selectors.filters.hidden = function(el){
+	return el.offsetWidth === 0 && el.offsetHeight === 0;
+};
 
 })();

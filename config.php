@@ -1,11 +1,13 @@
 <?
-// Settings for yShort
+// Settings for Karmagination
 
-$version = '0.3';
+$version = '0.1';
 $time = date('Y-m-d h:i:s A', time());
 
 $source = array(
 	'source/core.js',
+	'source/adding.js',
+	'source/iterator.js',
 	'source/manipulate.js',
 	'source/traverse.js',
 	'source/attribute.js',
@@ -17,17 +19,10 @@ $source = array(
 	'source/utilities.js',
 	'source/class.js',
 	'source/sizzle.js',
-	//'source/sly.js',
 	'source/selector.js',
 );
 
-$jQuery = true;
-$jQuery = false;
-
-$tests = true;
-$tests = false;
-
-$output_file = 'Karma.js';
-$output_min = 'Karma.min.js';
+$output_file = 'karma.js';
+$output_min = 'karma.min.js';
 
 ?>

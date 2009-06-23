@@ -25,13 +25,14 @@ Karma.extend({
 	trim: function(str){
 		/* Thanks to Steven Levithan's benchmark on string trimming */
 		// unicode friendly string trim for older browsers that don't catch all whitespaces
-		return str.replace(/^[\s\xA0]+/, '').replace(/[\s\xA0]+$/, ''); 
+		// string.trim() is in JS 1.8.1, supported by FF 3.5
+		return str.trim ? str.trim() : str.replace(/^[\s\xA0]+/, '').replace(/[\s\xA0]+$/, ''); 
 	},
 			 
 	grep: function(o, fn) {
 		var ret = [];
 		// Go through the array, only saving the items that pass the validator function
-		for ( var i = 0; i < o.length; i++ )
+		for (var i = 0; i < o.length; i++)
 			if (fn(o[i], i) !== false)
 				ret.push( o[i] );
 
@@ -39,7 +40,7 @@ Karma.extend({
 	},
 
 	inArray: function(el, o){
-		for (var i = 0; i < o.length; i++ )
+		for (var i = 0; i < o.length; i++)
 			if (o[i] === el)
 				return i;
 		return -1;

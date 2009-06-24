@@ -33,9 +33,13 @@ foreach($source as $file) {
 $content = ob_get_contents(); // get the output buffer
 ob_end_clean(); // don't output the buffer to screen
 
+$output_file = $output.'-'. $version. '.js';
+$output_min = $output.'.min-'.$version.'.js';
+
 $fp = fopen($output_file,"w+");
 fwrite($fp, $content);
 fclose($fp);
+
 $exec_string = 'java -jar yuicompressor-2.4.2.jar '.$output_file.' -o '.$output_min.' 2>&1';
 exec($exec_string, $output, $return);
 
@@ -49,6 +53,6 @@ else {
 }
 ?>
 
-<script language="javascript" src="Karma.js" type="text/javascript"></script>
+<script language="javascript" src="<?=$output_file?>" type="text/javascript"></script>
 </body>
 </html>

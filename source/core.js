@@ -40,7 +40,7 @@ var Karma = this.$ = this.Karma = function( query, context ) {
 		this[0] = query;
 		this.length = 1;
 		this.query = query;
-		return; // do not return 'this' because it's a constructor
+		return; // do not return 'this' because it's a constructor, return just to break from function
 	}
 	
 	// string is most used query
@@ -63,6 +63,7 @@ var Karma = this.$ = this.Karma = function( query, context ) {
 		if(query.query)	this.query = query.query;
 	}
 	
+	// push all the elements that we have gotten into the Karmagination Instance
 	this.populate(result);
 };
 
@@ -78,12 +79,12 @@ Karma.extend = function(o) {
 	return ret;
 };
 
-Karma.prototype.extend = function(o) {
-	Karma.extend(Karma.prototype, o);
-}
-
 // create an alias
 Karma.fn = Karma.prototype;
+
+Karma.fn.extend = function(o) {
+	Karma.extend(Karma.prototype, o);
+}
 
 Karma.fn.extend({
 	// populate nodes into Karma, starting from index n

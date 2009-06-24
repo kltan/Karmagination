@@ -21,7 +21,6 @@ Karma.fn.extend({
 				if(Karma.support.opacity) this[i].style.opacity = value;
 				// if we have full opacity, better to remove it to restore the antialiasing ablity of IE
 				else if(Karma.support.filter) this[i].style.filter = (parseInt(value, 10) == 1) ? '' : 'alpha(opacity=' + (value * 100) + ')';
-				
 			}
 			
 			return this;
@@ -42,13 +41,10 @@ Karma.fn.extend({
 		if (property === 'float')
 			property = Karma.support.styleFloat ? 'styleFloat' : 'cssFloat';
 		
-		// I did some profiling, camelCase is dead evil and expensive
-		// else property = Karma.camelCase(property);
-		
 		// convert integers to strings;
 		if (Karma.isNumber(value)) value += 'px';
 		
-		if(Karma.isString(value))
+		if(Karma.isString(value)) // just to be safe
 			for (var i=0; i < this.length; i++)
 				this[i].style[property] = value;
 		
@@ -68,23 +64,9 @@ Karma.fn.extend({
 			try { var opacity = this[0].filters('alpha').opacity; }	catch(e){ return 1; }
 			return opacity/100;
 		}
-		else if (property == 'borderWidth') {
-			property = 'borderTopWidth';
-		}
 		
-		else if (property == 'margin') {
-			property = 'marginTop';
-		}
-		
-		else if (property == 'padding') {
-			property = 'paddingTop';
-		}
-		
-		// I did some profiling, camelCase is dead evil and expensive
-		// else property = Karma.camelCase(property);
-		
-		if (this[0].currentStyle) 
-			return this[0].currentStyle[property];
+		if (this[0].currentStyle)
+			return this[0].currentStyle[property].length ? this[0].currentStyle[property] : this[0].style[property];
 			
 		var computed = document.defaultView.getComputedStyle(this[0], null)[property];
 		
@@ -136,10 +118,4 @@ Karma.extend(Karma, {
 		}
 		return '#' + hex.join('');
 	}
-	
-	/*,
-	camelCase: function(property){
-		return property.replace(/\-(\w)/g, function(all, letter){ return letter.toUpperCase();	});
-	}*/
-	
 });

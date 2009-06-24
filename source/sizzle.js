@@ -973,6 +973,8 @@ var posProcess = function(selector, context){
 
 // EXPOSE
 
-window.Sizzle = Sizzle;
+Karma.selector = Sizzle;
+Karma.filter = Sizzle.filter;
+Karma.pseudo = Sizzle.selectors.filters;
 
 })();

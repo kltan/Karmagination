@@ -3,9 +3,8 @@ Karma.fn.extend({
 	append: function(o) {
 		var els = Karma(o);
 		if(!this.length || !els.length) return this;
-		
-		Karma.temp.manipulate('append', els, this, o);
-		return this;
+
+		return Karma.temp.manipulate('append', els, this, els.query);
 	},
 	
 	appendTo: function(o) {
@@ -18,9 +17,8 @@ Karma.fn.extend({
 	prepend: function(o) {
 		var els = Karma(o);
 		if(!this.length || !els.length) return this;
-		
-		Karma.temp.manipulate('prepend', els, this, o);
-		return this;
+
+		return Karma.temp.manipulate('prepend', els, this, els.query);
 	},
 	
 	prependTo: function(o) {
@@ -34,8 +32,7 @@ Karma.fn.extend({
 		var els = Karma(o);
 		if(!this.length || !els.length) return this;
 		
-		Karma.temp.manipulate('before', els, this, o);
-		return this;
+		return Karma.temp.manipulate('before', els, this, els.query);
 	},
 	
 	insertBefore: function(o){
@@ -50,8 +47,7 @@ Karma.fn.extend({
 		var els = Karma(o);
 		if(!this.length || !els.length) return this;
 		
-		Karma.temp.manipulate('after', els, this, o);
-		return this;
+		return Karma.temp.manipulate('after', els, this, els.query);
 	},
 	
 	insertAfter: function(o){
@@ -94,12 +90,8 @@ Karma.fn.extend({
 	
 	text: function(value) {
 		if(Karma.isValue(value)) {
-			for(var i=0; i< this.length; i++) {
-				if(this[i].innerText)
-					this[i].innerText = value;
-				else
-					this[i].textContent = value;
-			}
+			for(var i=0; i< this.length; i++)
+				this[i].innerText ?	this[i].innerText = value :	this[i].textContent = value;
 			return this;
 		}
 		
@@ -159,7 +151,7 @@ Karma.extend(Karma.temp, {
 			for (var i=0; i< child.length; i++)
 				fragment.appendChild(child[i]);
 		}
-	
+		
 		if (Karma.isHTML(query)) {
 			var cloned = [];
 				
@@ -186,20 +178,22 @@ Karma.extend(Karma.temp, {
 						parent[i].parentNode.appendChild(newClones);
 				}
 			}
-			if (ret)
-				return Karma(cloned);
+			
+			return ret ? Karma(cloned) : parent;
 		}
 		else if (method == 'append')
-			parent[0].appendChild(newClones);
+			parent[0].appendChild(fragment);
 		else if (method == 'prepend')
-			parent[0].insertBefore(newClones, parent[0].firstChild);
+			parent[0].insertBefore(fragment, parent[0].firstChild);
 		else if (method == 'before')
-			parent[0].parentNode.insertBefore(newClones, parent[0]);
+			parent[0].parentNode.insertBefore(fragment, parent[0]);
 		else if (method == 'after') {
 			parent[0].nextSibling ? 
-				parent[0].parentNode.insertBefore(newClones, parent[0].nextSibling):
-				parent[0].parentNode.appendChild(newClones);
+				parent[0].parentNode.insertBefore(fragment, parent[0].nextSibling):
+				parent[0].parentNode.appendChild(fragment);
 		}
+		
+		return ret ? child : parent;
 	}
 });
 

@@ -22,7 +22,5 @@ $source = array(
 	'source/selector.js',
 );
 
-$output_file = 'karma.js';
-$output_min = 'karma.min.js';
-
+$output = 'karma';
 ?>

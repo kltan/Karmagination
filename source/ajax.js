@@ -1,7 +1,7 @@
 Karma.extend({
 
 	ajax: function(o) {
-		
+
 		o = Karma.extend({
 			type: 'GET',
 			data: '',
@@ -12,7 +12,7 @@ Karma.extend({
 			error: function(){},
 			XHR: window.XMLHttpRequest? new XMLHttpRequest(): new ActiveXObject("Microsoft.XMLHTTP")
 		 }, o);
-	
+
 		if (o.XHR === null || o.XHR === undefined) return;
 		
 		o.XHR.onreadystatechange=function(){

@@ -4,7 +4,7 @@
  * Released under the MIT, BSD, and GPL Licenses - Choose one that fit your needs
  * Copyright (c) 2009 Kean L. Tan 
  * Start date: 2009-04-01
- * Last build: 2009-06-22 11:35:05 PM
+ * Last build: 2009-06-24 03:42:07 PM
  *
  * Attribution:
  * CSS and browser detection copyright Valerio Proietti of Mootools
@@ -40,7 +40,7 @@ var Karma = this.$ = this.Karma = function( query, context ) {
 		this[0] = query;
 		this.length = 1;
 		this.query = query;
-		return; // do not return 'this' because it's a constructor
+		return; // do not return 'this' because it's a constructor, return just to break from function
 	}
 	
 	// string is most used query
@@ -63,6 +63,7 @@ var Karma = this.$ = this.Karma = function( query, context ) {
 		if(query.query)	this.query = query.query;
 	}
 	
+	// push all the elements that we have gotten into the Karmagination Instance
 	this.populate(result);
 };
 
@@ -384,6 +385,7 @@ Karma.fn.extend({
 		return this.KarmaStack.length ? Karma(this).populate(this.KarmaStack[0], this.length).stack(this): Karma(this).stack(this);
 	}
 });
+
 Karma.fn.extend({
 	each: function(fn){
 		for (var i=0; i< this.length; i++)
@@ -415,7 +417,7 @@ Karma.fn.extend({
 		var els = Karma(o);
 		if(!this.length || !els.length) return this;
 		
-		Karma.temp.manipulate('append', els, this, o);
+		Karma.temp.manipulate('append', els, this, els.query);
 		return this;
 	},
 	
@@ -430,7 +432,7 @@ Karma.fn.extend({
 		var els = Karma(o);
 		if(!this.length || !els.length) return this;
 		
-		Karma.temp.manipulate('prepend', els, this, o);
+		Karma.temp.manipulate('prepend', els, this, els.query);
 		return this;
 	},
 	
@@ -445,7 +447,7 @@ Karma.fn.extend({
 		var els = Karma(o);
 		if(!this.length || !els.length) return this;
 		
-		Karma.temp.manipulate('before', els, this, o);
+		Karma.temp.manipulate('before', els, this, els.query);
 		return this;
 	},
 	
@@ -461,7 +463,7 @@ Karma.fn.extend({
 		var els = Karma(o);
 		if(!this.length || !els.length) return this;
 		
-		Karma.temp.manipulate('after', els, this, o);
+		Karma.temp.manipulate('after', els, this, els.query);
 		return this;
 	},
 	
@@ -505,12 +507,8 @@ Karma.fn.extend({
 	
 	text: function(value) {
 		if(Karma.isValue(value)) {
-			for(var i=0; i< this.length; i++) {
-				if(this[i].innerText)
-					this[i].innerText = value;
-				else
-					this[i].textContent = value;
-			}
+			for(var i=0; i< this.length; i++)
+				this[i].innerText ?	this[i].innerText = value :	this[i].textContent = value;
 			return this;
 		}
 		
@@ -562,8 +560,15 @@ Karma.fn.extend({
 
 Karma.extend(Karma.temp, {
 	manipulate: function (method, child, parent, query, ret) {
-		var fragment = Karma.temp.appendToFragment(child);
-	
+		var fragment = child[0];
+		
+		if (child.length > 1) {
+			fragment = Karma.temp.fragment.cloneNode(false);
+			
+			for (var i=0; i< child.length; i++)
+				fragment.appendChild(child[i]);
+		}
+		
 		if (Karma.isHTML(query)) {
 			var cloned = [];
 				
@@ -594,29 +599,17 @@ Karma.extend(Karma.temp, {
 				return Karma(cloned);
 		}
 		else if (method == 'append')
-			parent[0].appendChild(newClones);
+			parent[0].appendChild(fragment);
 		else if (method == 'prepend')
-			parent[0].insertBefore(newClones, parent[0].firstChild);
+			parent[0].insertBefore(fragment, parent[0].firstChild);
 		else if (method == 'before')
-			parent[0].parentNode.insertBefore(newClones, parent[0]);
+			parent[0].parentNode.insertBefore(fragment, parent[0]);
 		else if (method == 'after') {
 			parent[0].nextSibling ? 
-				parent[0].parentNode.insertBefore(newClones, parent[0].nextSibling):
-				parent[0].parentNode.appendChild(newClones);
+				parent[0].parentNode.insertBefore(fragment, parent[0].nextSibling):
+				parent[0].parentNode.appendChild(fragment);
 		}
-	},
-	
-	appendToFragment: function (els) {
-		var fragment = els[0];
-		
-		if (els.length > 1) {
-			fragment = Karma.temp.fragment.cloneNode(false);
-			
-			for (var i=0; i< els.length; i++)
-				fragment.appendChild(els[i]);
-		}
-		
-		return fragment;
+		if (ret) return child;
 	}
 });
 
@@ -894,7 +887,7 @@ Karma.fn.extend({
 Karma.extend({
 
 	ajax: function(o) {
-		
+
 		o = Karma.extend({
 			type: 'GET',
 			data: '',
@@ -905,7 +898,7 @@ Karma.extend({
 			error: function(){},
 			XHR: window.XMLHttpRequest? new XMLHttpRequest(): new ActiveXObject("Microsoft.XMLHTTP")
 		 }, o);
-	
+
 		if (o.XHR === null || o.XHR === undefined) return;
 		
 		o.XHR.onreadystatechange=function(){
@@ -947,24 +940,33 @@ Karma.extend({
 		// reason: if you want to insert the script before onDOMready, please use HTML instead because you are not loading it on use
 		// another reason: IE bombs if before onDOMready
 		Karma(function(){ //onDOMready
-			// loop through all the urls
-			var $el;
+			
+			var callback = function(){
+				counter++;
+				if (counter == opts.url.length)
+					setTimeout(function(){ opts.success(); }, 40); // weird hack, opera fails if no timeout 
+			};
 			
 			for (var i = 0; i < opts.url.length; i++) {
-				$el = document.createElement('SCRIPT');
-				$el.type = 'text/javascript';
-				$el.src = opts.url[i];
-				document.documentElement.appendChild($el);
-				$el.onreadystatechange = $el.onload = function(){
-					counter++;
-					if (counter == opts.url.length)
-						setTimeout(function(){ opts.success(); }, 40); // weird hack, opera fails if no timeout 
+				var $script = document.createElement('SCRIPT');
+				$script.type = 'text/javascript';
+				$script.src = opts.url[i];
+				document.documentElement.appendChild($script);
+				
+				if ($script.readyState)
+					$script.onreadystatechange = function() {
+						if ($script.readyState == "loaded" || $script.readyState == "complete")
+							callback();
+					};
+
+				else script.onload = function(){
+					callback();
 				};
 			}
 		});
 	}
 });
-		
+
 Karma.fn.extend({
 
 	on: function(str, fn) {
@@ -1293,7 +1295,6 @@ Karma.fn.extend({
 				if(Karma.support.opacity) this[i].style.opacity = value;
 				// if we have full opacity, better to remove it to restore the antialiasing ablity of IE
 				else if(Karma.support.filter) this[i].style.filter = (parseInt(value, 10) == 1) ? '' : 'alpha(opacity=' + (value * 100) + ')';
-				
 			}
 			
 			return this;
@@ -1314,13 +1315,10 @@ Karma.fn.extend({
 		if (property === 'float')
 			property = Karma.support.styleFloat ? 'styleFloat' : 'cssFloat';
 		
-		// I did some profiling, camelCase is dead evil and expensive
-		// else property = Karma.camelCase(property);
-		
 		// convert integers to strings;
 		if (Karma.isNumber(value)) value += 'px';
 		
-		if(Karma.isString(value))
+		if(Karma.isString(value)) // just to be safe
 			for (var i=0; i < this.length; i++)
 				this[i].style[property] = value;
 		
@@ -1340,23 +1338,9 @@ Karma.fn.extend({
 			try { var opacity = this[0].filters('alpha').opacity; }	catch(e){ return 1; }
 			return opacity/100;
 		}
-		else if (property == 'borderWidth') {
-			property = 'borderTopWidth';
-		}
 		
-		else if (property == 'margin') {
-			property = 'marginTop';
-		}
-		
-		else if (property == 'padding') {
-			property = 'paddingTop';
-		}
-		
-		// I did some profiling, camelCase is dead evil and expensive
-		// else property = Karma.camelCase(property);
-		
-		if (this[0].currentStyle) 
-			return this[0].currentStyle[property];
+		if (this[0].currentStyle)
+			return this[0].currentStyle[property].length ? this[0].currentStyle[property] : this[0].style[property];
 			
 		var computed = document.defaultView.getComputedStyle(this[0], null)[property];
 		
@@ -1408,12 +1392,6 @@ Karma.extend(Karma, {
 		}
 		return '#' + hex.join('');
 	}
-	
-	/*,
-	camelCase: function(property){
-		return property.replace(/\-(\w)/g, function(all, letter){ return letter.toUpperCase();	});
-	}*/
-	
 });
 Karma.fn.extend({
 	/*
@@ -2678,20 +2656,19 @@ var posProcess = function(selector, context){
 
 // EXPOSE
 
-window.Sizzle = Sizzle;
-
-})();
-
 Karma.selector = Sizzle;
 Karma.filter = Sizzle.filter;
 Karma.pseudo = Sizzle.selectors.filters;
 
+})();
+
+
 // 2 filters below from the jQuery project
-Sizzle.selectors.filters.visible = function(el){
+Karma.pseudo.visible = function(el){
 	return el.offsetWidth > 0 || el.offsetHeight > 0;
 };
 
-Sizzle.selectors.filters.hidden = function(el){
+Karma.pseudo.hidden = function(el){
 	return el.offsetWidth === 0 && el.offsetHeight === 0;
 };
 

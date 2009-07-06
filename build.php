@@ -53,6 +53,23 @@ else {
 }
 ?>
 
-<script language="javascript" src="<?=$output_file?>" type="text/javascript"></script>
+<script src="<?=$output_file?>" type="text/javascript"></script>
+<script language="javascript">
+$(function(){
+
+	$('<div><a href="test">Testing event delegation</a></div>').appendTo(document.body);
+	
+	$('a').live('click', function(e){
+		alert('abc');
+		return false;
+	});
+	
+	$('body').live('click', function(e){
+		alert('a');	
+	});
+
+});
+</script>
+
 </body>
 </html>

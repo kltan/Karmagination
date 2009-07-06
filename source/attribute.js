@@ -2,15 +2,15 @@ Karma.fn.extend({
 			 
 	attr: function(prop, val){
 		if(Karma.isString(prop) && (Karma.isValue(val))) {
+			
 			for(var i=0; i<this.length; i++) {
-				if (prop==="class") 
-					this[i]['className'] = val;
-				else if (prop==="style" && Karma.support.cssText)
+				if (Karma.temp.attrMap[prop] && Karma.isDefined(this[i][Karma.temp.attrMap[prop]]))
+					this[i][Karma.temp.attrMap[prop]] = val;
+				else if (prop == "style" && Karma.support.cssText)
 					this[i].style.cssText = val;
-				if (/id|href|dir|src|title|type/.test(prop) && Karma.isDefined(this[i][prop]))
-					this[i][prop] = val;
-				else 
+				else {
 					this[i].setAttribute(prop, val);
+				}
 			}
 			return this;
 		}
@@ -27,9 +27,9 @@ Karma.fn.extend({
 	
 	removeAttr: function(prop) {
 		for(var i=0; i<this.length; i++) {
-			if (prop==="class")
-				this[i]['className'] = '';
-			else if (prop==="style" && Karma.support.cssText) 
+			if (Karma.temp.attrMap[prop] && Karma.isDefined(this[i][Karma.temp.attrMap[prop]]))
+				this[i][Karma.temp.attrMap[prop]] = '';
+			else if (prop == "style" && Karma.support.cssText) 
 				this[i].style.cssText = '';
 
 			try { this[i].removeAttribute(prop); } catch(e){};
@@ -43,25 +43,27 @@ Karma.fn.extend({
 		// value can be anything except for undefined
 		if(Karma.isValue(key) && Karma.isDefined(value)) {
 			for (var i=0; i< this.length; i++) {
-				this[i].KarmaData = this[i].KarmaData || {};
-				this[i].KarmaData[key] = value;
+				this[i].KarmaMap = this[i].KarmaMap || ++Karma.uniqueId;
+				var map = this[i].KarmaMap;
+				Karma.storage[map] = Karma.storage[map] || {};
+				Karma.storage[map].KarmaData = Karma.storage[map].KarmaData || {};
+				Karma.storage[map].KarmaData[key] = value;
 			}
 			return this;
 		}
-
-		return Karma.isDefined(this[0].KarmaData[key]) ? this[0].KarmaData[key] : null;
+	
+		return Karma.isDefined(Karma.storage[this[0].KarmaMap].KarmaData[key]) ? Karma.storage[this[0].KarmaMap].KarmaData[key] : null;
 	},
 	
 	removeData: function(key) {
 		if(Karma.isValue(key)) {
 			for (var i=0; i< this.length; i++) {
-				if (this[i].KarmaData)
-					this[i].KarmaData[key] = null;
+				try { Karma.storage[this[i].KarmaMap].KarmaData[key] = null; } catch(e){}
 			}
 		}
 		return this;
 	},
-
+	
 	addClass: function(str){
 		for(var i=0; i< this.length; i++)
 			this[i].className += ' ' + str; // browser will automatically remove duplicates and trim
@@ -107,14 +109,14 @@ Karma.fn.extend({
 	serialize: function() {
 		var ret = '';
 		for(var i=0; i< this.length; i++) {
-			// do not use a global name for name attribute, seems to be deprecated
 			var name = this[i].getAttribute('name');
-			if (name) {
+			if (name && name.length) {
 				var value = this[i].getAttribute('value') || '';
 				ret += name + '=' + value + '&';
 			}
 		}
-		return ret.substring(0, ret.length-1);
+		return ret.length ? ret.substring(0, ret.length-1) : '';
 	}
 
 });
+

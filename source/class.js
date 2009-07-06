@@ -19,3 +19,4 @@ Karma.Class = function(opts){
 	
 	return opts.constructor;
 };
+

@@ -18,17 +18,18 @@ Karma.fn.extend({
 		if (property == 'opacity') {
 			for (var i=0; i < this.length; i++) {
 				// webkit and opera support filter, which is BS
+				// lesson learnt: feature test W3C standard before proprietary standard 
 				if(Karma.support.opacity) this[i].style.opacity = value;
-				// if we have full opacity, better to remove it to restore the antialiasing ablity of IE
+				// if we have full opacity, better to remove it to restore the antialiasing ability of IE
 				else if(Karma.support.filter) this[i].style.filter = (parseInt(value, 10) == 1) ? '' : 'alpha(opacity=' + (value * 100) + ')';
 			}
 			
 			return this;
 		}
 		
-		if (property === 'scrollTop' || property === 'scrollLeft') {
+		if (property == 'scrollTop' || property == 'scrollLeft') {
 			for (var i=0; i < this.length; i++) {
-				if (this[i]===document.documentElement || this[i]===document || this[i]===document.body || this[i]===window) {
+				if (this[i] === document.documentElement || this[i] === document || this[i] === document.body || this[i] === window) {
 					document.body[property] = value;
 					document.documentElement[property] = value;
 				}
@@ -38,7 +39,7 @@ Karma.fn.extend({
 			return this;
 		}
 		
-		if (property === 'float')
+		if (property == 'float')
 			property = Karma.support.styleFloat ? 'styleFloat' : 'cssFloat';
 		
 		// convert integers to strings;
@@ -54,7 +55,7 @@ Karma.fn.extend({
 	getStyle: function(property) {
 		if(!this.length) return null;
 		
-		if (property === 'scrollTop' || property === 'scrollLeft')
+		if (property == 'scrollTop' || property == 'scrollLeft')
 			return (this[0]===document || this[0]===document.body || this[0]===window)? document.documentElement[property]: this[0][property];
 		
 		if (property == 'float')
@@ -66,12 +67,11 @@ Karma.fn.extend({
 		}
 		
 		if (this[0].currentStyle)
-			return this[0].currentStyle[property].length ? this[0].currentStyle[property] : this[0].style[property];
+			return this[0].currentStyle[property] ? this[0].currentStyle[property] : this[0].style[property];
 			
 		var computed = document.defaultView.getComputedStyle(this[0], null)[property];
 		
-		if (!computed.length)
-			computed = this[0].style[property];
+		if (!computed.length) computed = this[0].style[property];
 			
 		if (property.toLowerCase().indexOf('color') >= 0) {
 			var color = computed.match(/rgba?\([\d\s,]+\)/);
@@ -102,6 +102,17 @@ Karma.fn.extend({
 	
 	height: function(val){
 		return Karma.isValue(val) ? this.setStyle('height', val) : this.dimension('Height');
+	},
+	
+	offset: function() {
+		return this.length ? { top: this[0].offsetTop, left: this[0].offsetLeft }: null;
+	},
+	
+	position: function() {
+		var offset = this.offset(),
+			parent = this[0].offsetParent || document.body || document.documentElement;
+			
+		return this.length ? { left: offset.left - parent.offsetLeft, top: offset.top - parent.offsetTop }: null;
 	}
 });
 
@@ -119,3 +130,4 @@ Karma.extend(Karma, {
 		return '#' + hex.join('');
 	}
 });
+

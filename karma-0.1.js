@@ -4,12 +4,13 @@
  * Released under the MIT, BSD, and GPL Licenses - Choose one that fit your needs
  * Copyright (c) 2009 Kean L. Tan 
  * Start date: 2009-04-01
- * Last build: 2009-06-24 03:42:07 PM
+ * Build Time: 2009-07-02 11:05:36 PM
+ * Build: 1064
  *
  * Attribution:
  * CSS and browser detection copyright Valerio Proietti of Mootools
  * Selector engine, Sizzle, founded by John Resig, copyright Dojo Foundation
- * Common Feature Test copyright Juriy Zaytsev
+ * Common Feature Test copyright Juriy Zaytsev/kangax
  * onDOMready based on many JS experts' input, see the unminified source code for names
  */
  
@@ -20,14 +21,17 @@
 var window = this,
 	document = this.document,
 	undefined,
-	_Karma = window.Karma;
+	_Karma = this.Karma,
+	_$ = this.$;
 
 // Constructor Function
 var Karma = this.$ = this.Karma = function( query, context ) {
-	if (!(this instanceof Karma)) return new Karma( query, context ); // if Karma has not been instatiated, this === window
+	// note: if Karma has not been instatiated, this === global object
+	//if (!(this instanceof Karma)) return new Karma( query, context );
+	if (this === window) return new Karma( query, context );
 	
 	query = query || document;
-	context = context || window;
+	this.context = context = context || window;
 	
 	// the stack to track callee Karma objects
 	this.KarmaStack = [];
@@ -79,12 +83,12 @@ Karma.extend = function(o) {
 	return ret;
 };
 
-Karma.prototype.extend = function(o) {
-	Karma.extend(Karma.prototype, o);
-}
-
 // create an alias
 Karma.fn = Karma.prototype;
+
+Karma.fn.extend = function(o) {
+	Karma.extend(Karma.prototype, o);
+}
 
 Karma.fn.extend({
 	// populate nodes into Karma, starting from index n
@@ -133,7 +137,9 @@ Karma.fn.extend({
 	
 	// query that created the current instance of Karma
 	query: null,
-	isKarma: 0.1});
+	
+	isKarma: 0.1	
+});
 
 Karma.extend({
 	
@@ -209,6 +215,7 @@ Karma.extend({
 	isValue: function(o){ return typeof o == "number" || typeof o == "string" },
 	isBoolean: function(o){ return typeof o == "boolean" },
 	isDefined: function(o) { return o !== undefined },
+	
 	// unreliable detection, using documentation to prevent mistake instead
 	isHTML: function(o) { return /^<.+/.test(Karma.trim(o).substring(0,3).toLowerCase()) },
 	isKarma: function(o) { return !!o.isKarma },
@@ -254,8 +261,10 @@ Karma.extend({
 		return ret;
 	},
 	
-	playNice: function(){
-		window.Karma = _Karma;
+	noConflict: function(extreme){
+		window.$ = _$;
+		if (extreme)
+			window.Karma = _Karma;
 		return Karma;
 	},
 	
@@ -294,7 +303,7 @@ Karma.extend({
 			
 			// run all functions that are associated with ready
 			for(var i=0; i< Karma.readyFunctions.length; i++) {
-				Karma.readyFunctions[i]();
+				Karma.readyFunctions[i](Karma);
 			}
 		}
 		
@@ -328,26 +337,32 @@ Karma.temp = {
 		return Karma.isFunction(Karma.temp.oncontextmenu);
 	},
 	
-	event: function() {
-		Karma.temp.event.IS_EVENT_PREVENTDEFAULT_PRESENT = null;
-		Karma.temp.event.IS_EVENT_SRCELEMENT_PRESENT = null;
-		if (document.createElement) {
-			var i = document.createElement("input"), root = document.documentElement;
-			if (i && i.style && i.click && root && root.appendChild && root.removeChild) {
-				i.type = "checkbox";
-				i.style.display = "none";
-				i.onclick = function (e) {e = e || window.event;Karma.temp.event.IS_EVENT_PREVENTDEFAULT_PRESENT = "preventDefault" in e;Karma.temp.event.IS_EVENT_SRCELEMENT_PRESENT = "srcElement" in e;};
-				root.appendChild(i);
-				i.click();
-				root.removeChild(i);
-				i.onclick = null;
-				i = null;
-			}
-		}
+	attrMap: {
+		'for':'htmlFor',
+		'class':'className',
+		maxlength: 'maxLength',
+		readonly: 'readOnly',
+		rowspan: 'rowSpan',
+		colspan: 'colSpan',
+		codebase: 'codeBase',
+		ismap: 'isMap',
+		accesskey: 'accessKey',
+		longdesc: 'longDesc',
+		tabindex: 'tabIndex',
+		valign: 'vAlign',
+		cellspacing: 'cellSpacing',
+		cellpadding: 'cellPadding',
+		id: 'id',
+		href: 'href',
+		dir: 'dir',
+		src: 'src',
+		title: 'title',
+		type: 'type'
 	}
 }
 
-Karma.temp.event();
+Karma.uniqueId = 0;
+Karma.storage = {};
 
 // know the current browser's capabilities, we calculate here and use everywhere without recalculating
 // why isDefined is reliable here, REASON: we just created the ELEMENT and can be sure they are not polluted
@@ -364,27 +379,26 @@ Karma.support = {
 	fireEvent : Karma.isDefined(Karma.temp.div.fireEvent),
 	createEvent: Karma.isDefined(document.createEvent),
 	createEventObject: Karma.isDefined(document.createEventObject),
-	nodeListToArray: Karma.temp.nodeListToArray(),
-	contextMenu: Karma.temp.contextMenu(),
-	preventDefault: Karma.temp.event.IS_EVENT_PREVENTDEFAULT_PRESENT,
-	srcElement: Karma.temp.event.IS_EVENT_SRCELEMENT_PRESENT
+	nodeListToArray: Karma.temp.nodeListToArray()
 };
 
 // run the function to wait for onDOMready
 Karma.ready();
 
+
 Karma.fn.extend({
 
 	// adding elements
 	add: function(query) {
-		return query? Karma(this).populate(Karma(query), this.length).stack(this) : Karma(this).stack(this);
+		return query? Karma(this).populate(Karma(query), this.length).stack(this) : this;
 	},
 	
 		// adding self to chain
 	andSelf: function() {
-		return this.KarmaStack.length ? Karma(this).populate(this.KarmaStack[0], this.length).stack(this): Karma(this).stack(this);
+		return this.KarmaStack.length ? Karma(this).populate(this.KarmaStack[0], this.length).stack(this): this;
 	}
 });
+
 
 Karma.fn.extend({
 	each: function(fn){
@@ -411,14 +425,14 @@ Karma.fn.extend({
 	}
 });
 
+
 Karma.fn.extend({
 			 
 	append: function(o) {
 		var els = Karma(o);
 		if(!this.length || !els.length) return this;
-		
-		Karma.temp.manipulate('append', els, this, els.query);
-		return this;
+
+		return Karma.temp.manipulate('append', els, this, els.query);
 	},
 	
 	appendTo: function(o) {
@@ -431,9 +445,8 @@ Karma.fn.extend({
 	prepend: function(o) {
 		var els = Karma(o);
 		if(!this.length || !els.length) return this;
-		
-		Karma.temp.manipulate('prepend', els, this, els.query);
-		return this;
+
+		return Karma.temp.manipulate('prepend', els, this, els.query);
 	},
 	
 	prependTo: function(o) {
@@ -447,8 +460,7 @@ Karma.fn.extend({
 		var els = Karma(o);
 		if(!this.length || !els.length) return this;
 		
-		Karma.temp.manipulate('before', els, this, els.query);
-		return this;
+		return Karma.temp.manipulate('before', els, this, els.query);
 	},
 	
 	insertBefore: function(o){
@@ -463,8 +475,7 @@ Karma.fn.extend({
 		var els = Karma(o);
 		if(!this.length || !els.length) return this;
 		
-		Karma.temp.manipulate('after', els, this, els.query);
-		return this;
+		return Karma.temp.manipulate('after', els, this, els.query);
 	},
 	
 	insertAfter: function(o){
@@ -521,7 +532,7 @@ Karma.fn.extend({
 	},
 	
 	remove: function(query){
-		var result = Karma.isString(query) ? Karma.filter(query, this) : this;
+		var result = Karma.isString(query) ? Karma.filter(query, this) : this.length ? this : [];
 		
 		for (var i=0; i< result.length; i++)
 			result[i].parentNode.removeChild(result[i]);
@@ -595,8 +606,8 @@ Karma.extend(Karma.temp, {
 						parent[i].parentNode.appendChild(newClones);
 				}
 			}
-			if (ret)
-				return Karma(cloned);
+			
+			return ret ? Karma(cloned) : parent;
 		}
 		else if (method == 'append')
 			parent[0].appendChild(fragment);
@@ -609,7 +620,8 @@ Karma.extend(Karma.temp, {
 				parent[0].parentNode.insertBefore(fragment, parent[0].nextSibling):
 				parent[0].parentNode.appendChild(fragment);
 		}
-		if (ret) return child;
+		
+		return ret ? child : parent;
 	}
 });
 
@@ -761,22 +773,26 @@ Karma.fn.extend({
 	}
 });
 
+// for jQuery compatibility
 Karma.fn.extend({
-	find: Karma.fn.descendents // why? even I am addicted to using find
+	find: Karma.fn.descendents,
+	parents: Karma.fn.ancestors
 });
+
+
 Karma.fn.extend({
 			 
 	attr: function(prop, val){
 		if(Karma.isString(prop) && (Karma.isValue(val))) {
+			
 			for(var i=0; i<this.length; i++) {
-				if (prop==="class") 
-					this[i]['className'] = val;
-				else if (prop==="style" && Karma.support.cssText)
+				if (Karma.temp.attrMap[prop] && Karma.isDefined(this[i][Karma.temp.attrMap[prop]]))
+					this[i][Karma.temp.attrMap[prop]] = val;
+				else if (prop == "style" && Karma.support.cssText)
 					this[i].style.cssText = val;
-				if (/id|href|dir|src|title|type/.test(prop) && Karma.isDefined(this[i][prop]))
-					this[i][prop] = val;
-				else 
+				else {
 					this[i].setAttribute(prop, val);
+				}
 			}
 			return this;
 		}
@@ -793,9 +809,9 @@ Karma.fn.extend({
 	
 	removeAttr: function(prop) {
 		for(var i=0; i<this.length; i++) {
-			if (prop==="class")
-				this[i]['className'] = '';
-			else if (prop==="style" && Karma.support.cssText) 
+			if (Karma.temp.attrMap[prop] && Karma.isDefined(this[i][Karma.temp.attrMap[prop]]))
+				this[i][Karma.temp.attrMap[prop]] = '';
+			else if (prop == "style" && Karma.support.cssText) 
 				this[i].style.cssText = '';
 
 			try { this[i].removeAttribute(prop); } catch(e){};
@@ -809,25 +825,27 @@ Karma.fn.extend({
 		// value can be anything except for undefined
 		if(Karma.isValue(key) && Karma.isDefined(value)) {
 			for (var i=0; i< this.length; i++) {
-				this[i].KarmaData = this[i].KarmaData || {};
-				this[i].KarmaData[key] = value;
+				this[i].KarmaMap = this[i].KarmaMap || ++Karma.uniqueId;
+				var map = this[i].KarmaMap;
+				Karma.storage[map] = Karma.storage[map] || {};
+				Karma.storage[map].KarmaData = Karma.storage[map].KarmaData || {};
+				Karma.storage[map].KarmaData[key] = value;
 			}
 			return this;
 		}
-
-		return Karma.isDefined(this[0].KarmaData[key]) ? this[0].KarmaData[key] : null;
+	
+		return Karma.isDefined(Karma.storage[this[0].KarmaMap].KarmaData[key]) ? Karma.storage[this[0].KarmaMap].KarmaData[key] : null;
 	},
 	
 	removeData: function(key) {
 		if(Karma.isValue(key)) {
 			for (var i=0; i< this.length; i++) {
-				if (this[i].KarmaData)
-					this[i].KarmaData[key] = null;
+				try { Karma.storage[this[i].KarmaMap].KarmaData[key] = null; } catch(e){}
 			}
 		}
 		return this;
 	},
-
+	
 	addClass: function(str){
 		for(var i=0; i< this.length; i++)
 			this[i].className += ' ' + str; // browser will automatically remove duplicates and trim
@@ -873,17 +891,18 @@ Karma.fn.extend({
 	serialize: function() {
 		var ret = '';
 		for(var i=0; i< this.length; i++) {
-			// do not use a global name for name attribute, seems to be deprecated
 			var name = this[i].getAttribute('name');
-			if (name) {
+			if (name && name.length) {
 				var value = this[i].getAttribute('value') || '';
 				ret += name + '=' + value + '&';
 			}
 		}
-		return ret.substring(0, ret.length-1);
+		return ret.length ? ret.substring(0, ret.length-1) : '';
 	}
 
 });
+
+
 Karma.extend({
 
 	ajax: function(o) {
@@ -926,6 +945,8 @@ Karma.extend({
 	}
 
 });
+
+
 Karma.extend({
 
 	include: function(opts) {
@@ -967,33 +988,32 @@ Karma.extend({
 	}
 });
 
+
 Karma.fn.extend({
 
 	on: function(str, fn) {
-		if (!str || !this.length || !fn) return this;
+		if (!this.length || !Karma.isString(str) || !Karma.isFunction(fn)) return this;
+		
 		str = str.split(/\s+/);
 	
 		for(var j=0; j< str.length; j++) {
 			var ns = str[j].split('.');
 			for(var i=0; i< this.length; i++) {
 				
-				var $ = this[i];
-				var first = false;
-
-				$.KarmaEvent = $.KarmaEvent || {};
+				this[i].KarmaMap = this[i].KarmaMap || ++Karma.uniqueId;
+				Karma.storage[this[i].KarmaMap] = Karma.storage[this[i].KarmaMap] || {};
 				
-				if(!$.KarmaEvent[ns[0]]) {
-					$.KarmaEvent[ns[0]] = [];
-					first = true;
-				}
-					
+				var $ = Karma.storage[this[i].KarmaMap].KarmaEvent = Karma.storage[this[i].KarmaMap].KarmaEvent || {};
+				
+				$[ns[0]] = $[ns[0]] || [];
+
 				if (ns.length == 1)
-					$.KarmaEvent[ns[0]].push(fn);
+					$[ns[0]].push(fn);
 
 				else if (ns.length == 2)
-					$.KarmaEvent[ns[0]][ns[1]] = fn;
+					$[ns[0]][ns[1]] = fn;
 
-				try { $['on'+ns[0]] = Karma.event.caller; } finally{ $ = null; };
+				this[i]['on'+ns[0]] = Karma.event.caller;
 			}
 		}
 		return this;
@@ -1005,29 +1025,26 @@ Karma.fn.extend({
 		for(var j=0; j< token.length; j++) {
 			var ns = token[j].split('.');
 			for(var i=0; i< this.length; i++) {
-				var $ = this[i];
-				
-				if ($.KarmaEvent) {
+
+				if (this[i].KarmaMap && Karma.storage[this[i].KarmaMap] && Karma.storage[this[i].KarmaMap].KarmaEvent) {
+					var $ = Karma.storage[this[i].KarmaMap].KarmaEvent;
 					if (Karma.isFunction(fn)) {
-						for (var prop in $.KarmaEvent[ns[0]])
-							if ($.KarmaEvent[ns[0]][prop] == fn)
-								delete $.KarmaEvent[ns[0]][prop];
+						for (var prop in $[ns[0]])
+							if ($[ns[0]][prop] == fn)
+								delete $[ns[0]][prop];
 					}
-					else if (ns.length>1 && $.KarmaEvent[ns[0]]) {
-						delete $.KarmaEvent[ns[0]][ns[1]];
+					else if (ns.length > 1 && $[ns[0]]) {
+						delete $[ns[0]][ns[1]];
 					}
-					else if($.KarmaEvent[ns[0]]) {
-						$['on'+ns[0]] = null;
-						$['KarmaEvent'][ns[0]] = null;
-						delete $['KarmaEvent'][ns[0]];
+					else if($[ns[0]]) {
+						this[i]['on'+ns[0]] = null;
+						delete $[ns[0]];
 					}
 				}
 			}
 		}
 		return this;
 	},
-	
-	
 	
 	fire: function(eventName) {
 		try {
@@ -1065,15 +1082,15 @@ Karma.fn.extend({
 		} catch(e){};
 		
 		return this;
-	}
-	/*
-	,
+	},
+	
 	// preventDefault and stopPropagation is not complete for live yet
 	// need help on this
 	live: function(str, fn){
 		var query = this.query;
+		var context = this.context.document || this.context;
 
-		return Karma().stack(this).on(str, function(e){
+		return Karma(context).on(str, function(e, el){
 			
 			var ancestors = [], cur = e.target;
 			while(cur !== document) {
@@ -1082,174 +1099,171 @@ Karma.fn.extend({
 			}
 			
 			var $ancestors = Karma(ancestors).filter(query);
-			console.log(cur);
-			console.log(query);
-			console.log($ancestors[0]);
-			if($ancestors.length > 0){
-				if(fn.call($ancestors[0], e)=== false) {
-					e.preventDefault();
-					e.stopPropagation();
-				}
-			}
+
+			if($ancestors.length > 0)
+				return fn(e, el);
 		});	
 	},
 	
 	die: function(str, fn){
+		var context = this.context.document || this.context;
 		return Karma().un(str, fn);
-	}*/
+	}
 });
 
 Karma.extend(Karma.fn, {
 	bind: Karma.fn.on,
-	unbind: Karma.fn.un
+	unbind: Karma.fn.un,
+	trigger: Karma.fn.fire
 });
 
 // create events for w3c browser
-if(Karma.support.createEvent) {
-	Karma.event = {
-		load:{
-			type:"HTMLEvents",
-			init: function(e){
-				e.initEvent("load",false,false);
-			}
-		},
-		
-		unload:{
-			type:"HTMLEvents",
-			init:function(e){
-				e.initEvent("unload",false,false);
-			}
-		},
-		
-		select:{
-			type:"HTMLEvents",
-			init:function(e){
-				e.initEvent("select",true,false);
-			}
-		},
-		
-		change:{
-			type:"HTMLEvents",
-			init:function(e){
-				e.initEvent("change",true,false);
-			}
-		},
-		
-		submit:{
-			type:"HTMLEvents",
-			init:function(e,p){
-				e.initEvent("submit",true,true);
-			}
-		},
-		
-		reset:{
-			type:"HTMLEvents",
-			init:function(e){
-				e.initEvent("reset",true,false);
-			}
-		},
-		
-		resize:{
-			type:"HTMLEvents",
-			init:function(e){
-				e.initEvent("resize",true,false);
-			}
-		},
-		
-		scroll:{
-			type:"HTMLEvents",
-			init:function(e){
-				e.initEvent("scroll",true,false);
-			}
-		},
-		
-		click:{
-			type:"MouseEvents",
-			init:function(e,p){
-				e.initMouseEvent("click",true,true,window,1,p.screenX||0,p.screenY||0,p.clientX||0,p.clientY||0,p.ctrlKey||false,p.altKey||false,p.shiftKey||false,p.metaKey||false,p.button||0,p.relatedTarget||null);
-			}
-		},
-		
-		dblclick:{
-			type:"MouseEvents",
-			init:function(e,p){
-				e.initMouseEvent("click",true,true,window,2,p.screenX||0,p.screenY||0,p.clientX||0,p.clientY||0,p.ctrlKey||false,p.altKey||false,p.shiftKey||false,p.metaKey||false,p.button||0,p.relatedTarget||null);
-			}
-		},
-		
-		mousedown:{
-			type:"MouseEvents",
-			init:function(e,p){
-				e.initMouseEvent("mousedown",true,true,window,1,p.screenX||0,p.screenY||0,p.clientX||0,p.clientY||0,p.ctrlKey||false,p.altKey||false,p.shiftKey||false,p.metaKey||false,p.button||0,p.relatedTarget||null);
-			}
-		},
-		
-		mouseup:{
-			type:"MouseEvents",
-			init:function(e,p){
-				e.initMouseEvent("mouseup",true,true,window,1,p.screenX||0,p.screenY||0,p.clientX||0,p.clientY||0,p.ctrlKey||false,p.altKey||false,p.shiftKey||false,p.metaKey||false,p.button||0,p.relatedTarget||null);
-			}
-		},
-		
-		mouseover:{
-			type:"MouseEvents",
-			init:function(e,p){
-				e.initMouseEvent("mouseover",true,true,window,1,p.screenX||0,p.screenY||0,p.clientX||0,p.clientY||0,p.ctrlKey||false,p.altKey||false,p.shiftKey||false,p.metaKey||false,p.button||0,p.relatedTarget||null);
-			}
-		},
-		
-		mousemove:{
-			type:"MouseEvents",
-			init:function(e,p){
-				e.initMouseEvent("mousemove",true,true,window,1,p.screenX||0,p.screenY||0,p.clientX||0,p.clientY||0,p.ctrlKey||false,p.altKey||false,p.shiftKey||false,p.metaKey||false,p.button||0,p.relatedTarget||null);
-			}
-		},
-		
-		mouseout:{
-			type:"MouseEvents",
-			init:function(e,p){
-				e.initMouseEvent("mouseout",true,true,window,1,p.screenX||0,p.screenY||0,p.clientX||0,p.clientY||0,p.ctrlKey||false,p.altKey||false,p.shiftKey||false,p.metaKey||false,p.button||0,p.relatedTarget||null);
-			}
-		},
-		
-		focusin:{
-			type:"UIEvents",
-			init:function(e){
-				e.initUIEvent("focusin",true,false,window,1);
-			}
-		},
-		
-		focusout:{
-			type:"UIEvents",
-			init:function(e){
-				e.initUIEvent("focusout",true,false,window,1);
-			}
-		},
-		
-		activate:{
-			type:"UIEvents",
-			init:function(e){
-				e.initUIEvent("activate",true,true,window,1);
-			}
-		},
-		
-		focus:{
-			type:"UIEvents",
-			init:function(e){
-				e.initUIEvent("focus",false,false,window,1);
-			}
-		},
-		
-		blur:{
-			type:"UIEvents",
-			init:function(e){
-				e.initUIEvent("blur",false,false,window,1);
-			}
+if(Karma.support.createEvent)
+Karma.event = {
+	load:{
+		type:"HTMLEvents",
+		init: function(e){
+			e.initEvent("load",false,false);
 		}
-	};
+	},
+	
+	unload:{
+		type:"HTMLEvents",
+		init:function(e){
+			e.initEvent("unload",false,false);
+		}
+	},
+	
+	select:{
+		type:"HTMLEvents",
+		init:function(e){
+			e.initEvent("select",true,false);
+		}
+	},
+	
+	change:{
+		type:"HTMLEvents",
+		init:function(e){
+			e.initEvent("change",true,false);
+		}
+	},
+	
+	submit:{
+		type:"HTMLEvents",
+		init:function(e,p){
+			e.initEvent("submit",true,true);
+		}
+	},
+	
+	reset:{
+		type:"HTMLEvents",
+		init:function(e){
+			e.initEvent("reset",true,false);
+		}
+	},
+	
+	resize:{
+		type:"HTMLEvents",
+		init:function(e){
+			e.initEvent("resize",true,false);
+		}
+	},
+	
+	scroll:{
+		type:"HTMLEvents",
+		init:function(e){
+			e.initEvent("scroll",true,false);
+		}
+	},
+	
+	click:{
+		type:"MouseEvents",
+		init:function(e,p){
+			e.initMouseEvent("click",true,true,window,1,p.screenX||0,p.screenY||0,p.clientX||0,p.clientY||0,p.ctrlKey||false,p.altKey||false,p.shiftKey||false,p.metaKey||false,p.button||0,p.relatedTarget||null);
+		}
+	},
+	
+	dblclick:{
+		type:"MouseEvents",
+		init:function(e,p){
+			e.initMouseEvent("click",true,true,window,2,p.screenX||0,p.screenY||0,p.clientX||0,p.clientY||0,p.ctrlKey||false,p.altKey||false,p.shiftKey||false,p.metaKey||false,p.button||0,p.relatedTarget||null);
+		}
+	},
+	
+	mousedown:{
+		type:"MouseEvents",
+		init:function(e,p){
+			e.initMouseEvent("mousedown",true,true,window,1,p.screenX||0,p.screenY||0,p.clientX||0,p.clientY||0,p.ctrlKey||false,p.altKey||false,p.shiftKey||false,p.metaKey||false,p.button||0,p.relatedTarget||null);
+		}
+	},
+	
+	mouseup:{
+		type:"MouseEvents",
+		init:function(e,p){
+			e.initMouseEvent("mouseup",true,true,window,1,p.screenX||0,p.screenY||0,p.clientX||0,p.clientY||0,p.ctrlKey||false,p.altKey||false,p.shiftKey||false,p.metaKey||false,p.button||0,p.relatedTarget||null);
+		}
+	},
+	
+	mouseover:{
+		type:"MouseEvents",
+		init:function(e,p){
+			e.initMouseEvent("mouseover",true,true,window,1,p.screenX||0,p.screenY||0,p.clientX||0,p.clientY||0,p.ctrlKey||false,p.altKey||false,p.shiftKey||false,p.metaKey||false,p.button||0,p.relatedTarget||null);
+		}
+	},
+	
+	mousemove:{
+		type:"MouseEvents",
+		init:function(e,p){
+			e.initMouseEvent("mousemove",true,true,window,1,p.screenX||0,p.screenY||0,p.clientX||0,p.clientY||0,p.ctrlKey||false,p.altKey||false,p.shiftKey||false,p.metaKey||false,p.button||0,p.relatedTarget||null);
+		}
+	},
+	
+	mouseout:{
+		type:"MouseEvents",
+		init:function(e,p){
+			e.initMouseEvent("mouseout",true,true,window,1,p.screenX||0,p.screenY||0,p.clientX||0,p.clientY||0,p.ctrlKey||false,p.altKey||false,p.shiftKey||false,p.metaKey||false,p.button||0,p.relatedTarget||null);
+		}
+	},
+	
+	focusin:{
+		type:"UIEvents",
+		init:function(e){
+			e.initUIEvent("focusin",true,false,window,1);
+		}
+	},
+	
+	focusout:{
+		type:"UIEvents",
+		init:function(e){
+			e.initUIEvent("focusout",true,false,window,1);
+		}
+	},
+	
+	activate:{
+		type:"UIEvents",
+		init:function(e){
+			e.initUIEvent("activate",true,true,window,1);
+		}
+	},
+	
+	focus:{
+		type:"UIEvents",
+		init:function(e){
+			e.initUIEvent("focus",false,false,window,1);
+		}
+	},
+	
+	blur:{
+		type:"UIEvents",
+		init:function(e){
+			e.initUIEvent("blur",false,false,window,1);
+		}
+	}
 }
 
-Karma.event = Karma.event || {};
+else
+	Karma.event = {};
+	
 Karma.event.caller = function(e) {
 	e = window.event || e;
 	
@@ -1257,21 +1271,41 @@ Karma.event.caller = function(e) {
 	if(!e.stopPropagation && window.event) 
 		e.stopPropagation = function(){ window.event.cancelBubble = true; };
 	
-	if(!Karma.support.preventDefault && window.event)
+	if(!e.preventDefault && window.event)
 		e.preventDefault = function(){ window.event.returnValue = false; };
-	
-	if(!e.srcElement) e.srcElement = this;
-	if(!e.target) e.target = this;
-	
-	if(this.KarmaEvent && this.KarmaEvent[e.type]) {
-		for(var functions in this.KarmaEvent[e.type]) {
-			if(this.KarmaEvent[e.type][functions](e, this) === false) {
+		
+	if(!e.target && e.srcElement)
+		e.target = e.srcElement;
+		
+	if(e.type == 'mouseover' && !e.relatedTarget)
+         e.relatedTarget = e.fromElement;
+
+	else if(e.type == 'mouseout' && !e.relatedTarget)
+		e.relatedTarget = e.toElement;
+		
+	if(!e.keyCode && e.charCode)
+		e.keyCode = e.charCode;
+		
+	if(e.wheelDelta) {
+		e.wheelDiff = e.wheelDelta/120;
+		if(window.opera)
+			e.wheelDiff = -e.wheelDiff;
+	}
+	else if (e.detail)
+		e.wheelDiff = -e.detail/3;
+		
+		
+	if(this.KarmaMap && Karma.storage[this.KarmaMap].KarmaEvent && Karma.storage[this.KarmaMap].KarmaEvent[e.type]) {
+		for(var functions in Karma.storage[this.KarmaMap].KarmaEvent[e.type]) {
+			if(Karma.storage[this.KarmaMap].KarmaEvent[e.type][functions](e, this) === false) {
 				e.stopPropagation();
 				e.preventDefault();	
 			}
 		}
 	}
 }
+
+
 Karma.fn.extend({
 	style: function(property, value) {
 		if (Karma.isString(property) && Karma.isValue(value))
@@ -1292,17 +1326,18 @@ Karma.fn.extend({
 		if (property == 'opacity') {
 			for (var i=0; i < this.length; i++) {
 				// webkit and opera support filter, which is BS
+				// lesson learnt: feature test W3C standard before proprietary standard 
 				if(Karma.support.opacity) this[i].style.opacity = value;
-				// if we have full opacity, better to remove it to restore the antialiasing ablity of IE
+				// if we have full opacity, better to remove it to restore the antialiasing ability of IE
 				else if(Karma.support.filter) this[i].style.filter = (parseInt(value, 10) == 1) ? '' : 'alpha(opacity=' + (value * 100) + ')';
 			}
 			
 			return this;
 		}
 		
-		if (property === 'scrollTop' || property === 'scrollLeft') {
+		if (property == 'scrollTop' || property == 'scrollLeft') {
 			for (var i=0; i < this.length; i++) {
-				if (this[i]===document.documentElement || this[i]===document || this[i]===document.body || this[i]===window) {
+				if (this[i] === document.documentElement || this[i] === document || this[i] === document.body || this[i] === window) {
 					document.body[property] = value;
 					document.documentElement[property] = value;
 				}
@@ -1312,7 +1347,7 @@ Karma.fn.extend({
 			return this;
 		}
 		
-		if (property === 'float')
+		if (property == 'float')
 			property = Karma.support.styleFloat ? 'styleFloat' : 'cssFloat';
 		
 		// convert integers to strings;
@@ -1328,7 +1363,7 @@ Karma.fn.extend({
 	getStyle: function(property) {
 		if(!this.length) return null;
 		
-		if (property === 'scrollTop' || property === 'scrollLeft')
+		if (property == 'scrollTop' || property == 'scrollLeft')
 			return (this[0]===document || this[0]===document.body || this[0]===window)? document.documentElement[property]: this[0][property];
 		
 		if (property == 'float')
@@ -1340,12 +1375,11 @@ Karma.fn.extend({
 		}
 		
 		if (this[0].currentStyle)
-			return this[0].currentStyle[property].length ? this[0].currentStyle[property] : this[0].style[property];
+			return this[0].currentStyle[property] ? this[0].currentStyle[property] : this[0].style[property];
 			
 		var computed = document.defaultView.getComputedStyle(this[0], null)[property];
 		
-		if (!computed.length)
-			computed = this[0].style[property];
+		if (!computed.length) computed = this[0].style[property];
 			
 		if (property.toLowerCase().indexOf('color') >= 0) {
 			var color = computed.match(/rgba?\([\d\s,]+\)/);
@@ -1376,6 +1410,17 @@ Karma.fn.extend({
 	
 	height: function(val){
 		return Karma.isValue(val) ? this.setStyle('height', val) : this.dimension('Height');
+	},
+	
+	offset: function() {
+		return this.length ? { top: this[0].offsetTop, left: this[0].offsetLeft }: null;
+	},
+	
+	position: function() {
+		var offset = this.offset(),
+			parent = this[0].offsetParent || document.body || document.documentElement;
+			
+		return this.length ? { left: offset.left - parent.offsetLeft, top: offset.top - parent.offsetTop }: null;
 	}
 });
 
@@ -1393,9 +1438,14 @@ Karma.extend(Karma, {
 		return '#' + hex.join('');
 	}
 });
+
+
 Karma.fn.extend({
 	/*
-	// visibility hidden ? BAH, I won't support
+	// visibility hidden ? BAH, I won't support, 
+	// why? Not that I can't, just that using this piece of junk 
+	// introduces terrible inefficiencies if done reliably
+	// sometims it's best that coders know what they are doing
 	show: function(){
 		var hidden = Karma.filter(':hidden', this);
 		for(var i=0; i<hidden.length; i++)
@@ -1423,12 +1473,19 @@ Karma.fn.extend({
 	// eww it might be ugly and expensive to turn camelCase into hyphenated-form
 	// if I implement a hash table, it will bloat the code quite a bit as there are A LOT of CSS properties
 	// I guess this idea is dead for now until I figure out a way
+	// FX does not use Karma.Storage for 1 reason, it cleans itself after animation
+	// TODO: 
+	// YES! I found a way to parse out CSS text (reducing the reflow) and also make camelCasing and hyphenated-form coexists without heavy processing
+	// by using caching mechenism so I don't have to do it every time. Will implement this concept on version 0.2
 	animate: function(attributes, duration, callback, easing, step){
 		if (!Karma.isObject(attributes) || !this.length) return this;
 		
+		// ok, here's where Karmagination differs a lot from jQuery, we don't unhide things, 
+		// you have to manually do that, that's just our philosophy
+		
 		// do this for scoping issues with internal functions
-		//var els  = this;
-		var els = Karma.filter(':visible', this);
+		var els = this; //Karma.filter(':visible', this);
+		
 		// default values
 		duration = duration || 500;
 		easing = easing || Karma.easing.global;
@@ -1468,13 +1525,13 @@ Karma.fn.extend({
 					var val = Karma.trim(attributes[prop]);
 					
 					if(/opacity|scrollLeft|scrollTop/.test(prop)) {
-						FX.end[prop] = (FX.start[prop] - 0) + parseFloat(attributes[prop]);
+						FX.end[prop] = parseInt(FX.start[prop], 10) + parseFloat(attributes[prop]);
 					}
 
-					else if (val.indexOf('+=') === 0)
+					else if (val.indexOf('+=') == 0)
 						FX.end[prop] = parseInt(FX.start[prop], 10) + parseInt($curEl.setStyle(prop, val.substr(2)).getStyle(prop), 10);
 
-					else if (val.indexOf('-=') === 0)
+					else if (val.indexOf('-=') == 0)
 						FX.end[prop] = parseInt(FX.start[prop], 10) - parseInt($curEl.setStyle(prop, val.substr(2)).getStyle(prop), 10);
 
 					// set the final attribute if they are in PIXELS, no calculation
@@ -1540,8 +1597,8 @@ Karma.fn.extend({
 						Karma(els[i]).css(els[i].KarmaFX[iter].end);
 				}
 				
-				// if there's a callback, call now with scope as window
-				if (els[0].KarmaFX && els[0].KarmaFX[iter].callback) els[0].KarmaFX[iter].callback(Karma.makeArray(els));
+				// if there's a callback
+				try { els[0].KarmaFX[iter].callback(); } catch(e){};
 				
 				// up the next item in the animation queue
 				iter++;
@@ -1596,6 +1653,7 @@ Karma.easing = {
 };
 
 Karma.easing.global = Karma.easing.linear;
+
 
 Karma.extend({
 			 
@@ -1659,6 +1717,7 @@ Karma.extend({
 	}
 });
 
+
 Karma.Class = function(opts){
 	
 	opts.constructor = opts.constructor || function(){};
@@ -1680,6 +1739,7 @@ Karma.Class = function(opts){
 	
 	return opts.constructor;
 };
+
 
 /*!
  * Sizzle CSS Selector Engine - v1.0
@@ -2661,6 +2721,7 @@ Karma.filter = Sizzle.filter;
 Karma.pseudo = Sizzle.selectors.filters;
 
 })();
+
 
 
 // 2 filters below from the jQuery project

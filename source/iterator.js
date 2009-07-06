@@ -22,3 +22,4 @@ Karma.fn.extend({
 		return this;
 	}
 });
+

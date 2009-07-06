@@ -145,6 +145,9 @@ Karma.fn.extend({
 	}
 });
 
+// for jQuery compatibility
 Karma.fn.extend({
-	find: Karma.fn.descendents // why? even I am addicted to using find
+	find: Karma.fn.descendents,
+	parents: Karma.fn.ancestors
 });
+

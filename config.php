@@ -4,6 +4,16 @@
 $version = '0.1';
 $time = date('Y-m-d h:i:s A', time());
 
+$build = file_get_contents('build.version');
+$next = (int)$build + 1 . '';
+
+echo 'Build ' . $build . '<br />';
+
+$handle = fopen('build.version', 'w+');
+fwrite($handle, $next);
+fclose($handle);
+
+
 $source = array(
 	'source/core.js',
 	'source/adding.js',
@@ -13,7 +23,7 @@ $source = array(
 	'source/attribute.js',
 	'source/ajax.js',
 	'source/include.js',
-	'source/event.js',
+	'source/event_new.js',
 	'source/css.js',
 	'source/fx.js',
 	'source/utilities.js',

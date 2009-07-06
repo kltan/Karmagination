@@ -59,3 +59,4 @@ Karma.extend({
 		return Array.prototype.concat.apply([], arguments);
 	}
 });
+

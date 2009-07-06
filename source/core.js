@@ -4,12 +4,13 @@
  * Released under the MIT, BSD, and GPL Licenses - Choose one that fit your needs
  * Copyright (c) 2009 Kean L. Tan 
  * Start date: 2009-04-01
- * Last build: <?=$time."\n"?>
+ * Build Time: <?=$time."\n"?>
+ * Build: <?=$build."\n"?>
  *
  * Attribution:
  * CSS and browser detection copyright Valerio Proietti of Mootools
  * Selector engine, Sizzle, founded by John Resig, copyright Dojo Foundation
- * Common Feature Test copyright Juriy Zaytsev
+ * Common Feature Test copyright Juriy Zaytsev/kangax
  * onDOMready based on many JS experts' input, see the unminified source code for names
  */
  
@@ -20,14 +21,16 @@
 var window = this,
 	document = this.document,
 	undefined,
-	_Karma = window.Karma;
+	_Karma = this.Karma,
+	_$ = this.$;
 
 // Constructor Function
 var Karma = this.$ = this.Karma = function( query, context ) {
-	if (!(this instanceof Karma)) return new Karma( query, context ); // if Karma has not been instatiated, this === window
+	// note: if Karma has not been instatiated, this === global object
+	if (!(this instanceof Karma)) return new Karma( query, context );
 	
 	query = query || document;
-	context = context || window;
+	this.context = context = context || window;
 	
 	// the stack to track callee Karma objects
 	this.KarmaStack = [];
@@ -73,7 +76,7 @@ Karma.extend = function(o) {
 	
 	for (; i < arguments.length; i++ ) 
 		for ( var key in arguments[i] ) 
-			if (arguments[i][key] !== undefined)
+			if (Karma.isDefined(arguments[i][key]))
 				ret[key] = arguments[i][key]; 
 	
 	return ret;
@@ -133,7 +136,9 @@ Karma.fn.extend({
 	
 	// query that created the current instance of Karma
 	query: null,
+	
 	isKarma: <?=$version?>
+	
 });
 
 Karma.extend({
@@ -209,7 +214,8 @@ Karma.extend({
 	isNumber: function(o){ return typeof o == "number" },
 	isValue: function(o){ return typeof o == "number" || typeof o == "string" },
 	isBoolean: function(o){ return typeof o == "boolean" },
-	isDefined: function(o) { return o !== undefined },
+	isDefined: function(o) { return typeof != "undefined" },
+	
 	// unreliable detection, using documentation to prevent mistake instead
 	isHTML: function(o) { return /^<.+/.test(Karma.trim(o).substring(0,3).toLowerCase()) },
 	isKarma: function(o) { return !!o.isKarma },
@@ -255,8 +261,10 @@ Karma.extend({
 		return ret;
 	},
 	
-	playNice: function(){
-		window.Karma = _Karma;
+	noConflict: function(extreme){
+		window.$ = _$;
+		if (extreme)
+			window.Karma = _Karma;
 		return Karma;
 	},
 	
@@ -295,7 +303,7 @@ Karma.extend({
 			
 			// run all functions that are associated with ready
 			for(var i=0; i< Karma.readyFunctions.length; i++) {
-				Karma.readyFunctions[i]();
+				Karma.readyFunctions[i](Karma);
 			}
 		}
 		
@@ -329,26 +337,32 @@ Karma.temp = {
 		return Karma.isFunction(Karma.temp.oncontextmenu);
 	},
 	
-	event: function() {
-		Karma.temp.event.IS_EVENT_PREVENTDEFAULT_PRESENT = null;
-		Karma.temp.event.IS_EVENT_SRCELEMENT_PRESENT = null;
-		if (document.createElement) {
-			var i = document.createElement("input"), root = document.documentElement;
-			if (i && i.style && i.click && root && root.appendChild && root.removeChild) {
-				i.type = "checkbox";
-				i.style.display = "none";
-				i.onclick = function (e) {e = e || window.event;Karma.temp.event.IS_EVENT_PREVENTDEFAULT_PRESENT = "preventDefault" in e;Karma.temp.event.IS_EVENT_SRCELEMENT_PRESENT = "srcElement" in e;};
-				root.appendChild(i);
-				i.click();
-				root.removeChild(i);
-				i.onclick = null;
-				i = null;
-			}
-		}
+	attrMap: {
+		'for':'htmlFor',
+		'class':'className',
+		maxlength: 'maxLength',
+		readonly: 'readOnly',
+		rowspan: 'rowSpan',
+		colspan: 'colSpan',
+		codebase: 'codeBase',
+		ismap: 'isMap',
+		accesskey: 'accessKey',
+		longdesc: 'longDesc',
+		tabindex: 'tabIndex',
+		valign: 'vAlign',
+		cellspacing: 'cellSpacing',
+		cellpadding: 'cellPadding',
+		id: 'id',
+		href: 'href',
+		dir: 'dir',
+		src: 'src',
+		title: 'title',
+		type: 'type'
 	}
 }
 
-Karma.temp.event();
+Karma.uniqueId = 0;
+Karma.storage = {};
 
 // know the current browser's capabilities, we calculate here and use everywhere without recalculating
 // why isDefined is reliable here, REASON: we just created the ELEMENT and can be sure they are not polluted
@@ -365,11 +379,9 @@ Karma.support = {
 	fireEvent : Karma.isDefined(Karma.temp.div.fireEvent),
 	createEvent: Karma.isDefined(document.createEvent),
 	createEventObject: Karma.isDefined(document.createEventObject),
-	nodeListToArray: Karma.temp.nodeListToArray(),
-	contextMenu: Karma.temp.contextMenu(),
-	preventDefault: Karma.temp.event.IS_EVENT_PREVENTDEFAULT_PRESENT,
-	srcElement: Karma.temp.event.IS_EVENT_SRCELEMENT_PRESENT
+	nodeListToArray: Karma.temp.nodeListToArray()
 };
 
 // run the function to wait for onDOMready
 Karma.ready();
+

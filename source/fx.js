@@ -1,6 +1,9 @@
 Karma.fn.extend({
 	/*
-	// visibility hidden ? BAH, I won't support
+	// visibility hidden ? BAH, I won't support, 
+	// why? Not that I can't, just that using this piece of junk 
+	// introduces terrible inefficiencies if done reliably
+	// sometims it's best that coders know what they are doing
 	show: function(){
 		var hidden = Karma.filter(':hidden', this);
 		for(var i=0; i<hidden.length; i++)
@@ -28,12 +31,19 @@ Karma.fn.extend({
 	// eww it might be ugly and expensive to turn camelCase into hyphenated-form
 	// if I implement a hash table, it will bloat the code quite a bit as there are A LOT of CSS properties
 	// I guess this idea is dead for now until I figure out a way
+	// FX does not use Karma.Storage for 1 reason, it cleans itself after animation
+	// TODO: 
+	// YES! I found a way to parse out CSS text (reducing the reflow) and also make camelCasing and hyphenated-form coexists without heavy processing
+	// by using caching mechenism so I don't have to do it every time. Will implement this concept on version 0.2
 	animate: function(attributes, duration, callback, easing, step){
 		if (!Karma.isObject(attributes) || !this.length) return this;
 		
+		// ok, here's where Karmagination differs a lot from jQuery, we don't unhide things, 
+		// you have to manually do that, that's just our philosophy
+		
 		// do this for scoping issues with internal functions
-		//var els  = this;
-		var els = Karma.filter(':visible', this);
+		var els = this; //Karma.filter(':visible', this);
+		
 		// default values
 		duration = duration || 500;
 		easing = easing || Karma.easing.global;
@@ -73,13 +83,13 @@ Karma.fn.extend({
 					var val = Karma.trim(attributes[prop]);
 					
 					if(/opacity|scrollLeft|scrollTop/.test(prop)) {
-						FX.end[prop] = (FX.start[prop] - 0) + parseFloat(attributes[prop]);
+						FX.end[prop] = parseInt(FX.start[prop], 10) + parseFloat(attributes[prop]);
 					}
 
-					else if (val.indexOf('+=') === 0)
+					else if (val.indexOf('+=') == 0)
 						FX.end[prop] = parseInt(FX.start[prop], 10) + parseInt($curEl.setStyle(prop, val.substr(2)).getStyle(prop), 10);
 
-					else if (val.indexOf('-=') === 0)
+					else if (val.indexOf('-=') == 0)
 						FX.end[prop] = parseInt(FX.start[prop], 10) - parseInt($curEl.setStyle(prop, val.substr(2)).getStyle(prop), 10);
 
 					// set the final attribute if they are in PIXELS, no calculation
@@ -145,8 +155,8 @@ Karma.fn.extend({
 						Karma(els[i]).css(els[i].KarmaFX[iter].end);
 				}
 				
-				// if there's a callback, call now with scope as window
-				if (els[0].KarmaFX && els[0].KarmaFX[iter].callback) els[0].KarmaFX[iter].callback(Karma.makeArray(els));
+				// if there's a callback
+				try { els[0].KarmaFX[iter].callback(); } catch(e){};
 				
 				// up the next item in the animation queue
 				iter++;
@@ -201,3 +211,4 @@ Karma.easing = {
 };
 
 Karma.easing.global = Karma.easing.linear;
+

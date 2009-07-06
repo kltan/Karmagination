@@ -23,7 +23,7 @@ $source = array(
 	'source/attribute.js',
 	'source/ajax.js',
 	'source/include.js',
-	'source/event_new.js',
+	'source/event.js',
 	'source/css.js',
 	'source/fx.js',
 	'source/utilities.js',

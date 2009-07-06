@@ -4,8 +4,8 @@
  * Released under the MIT, BSD, and GPL Licenses - Choose one that fit your needs
  * Copyright (c) 2009 Kean L. Tan 
  * Start date: 2009-04-01
- * Build Time: 2009-07-02 11:05:36 PM
- * Build: 1064
+ * Build Time: 2009-07-06 04:16:59 PM
+ * Build: 1070
  *
  * Attribution:
  * CSS and browser detection copyright Valerio Proietti of Mootools
@@ -20,15 +20,13 @@
 // speeding up reference in non-JIT bytecode
 var window = this,
 	document = this.document,
-	undefined,
 	_Karma = this.Karma,
 	_$ = this.$;
 
 // Constructor Function
 var Karma = this.$ = this.Karma = function( query, context ) {
 	// note: if Karma has not been instatiated, this === global object
-	//if (!(this instanceof Karma)) return new Karma( query, context );
-	if (this === window) return new Karma( query, context );
+	if (!(this instanceof Karma)) return new Karma( query, context );
 	
 	query = query || document;
 	this.context = context = context || window;
@@ -77,7 +75,7 @@ Karma.extend = function(o) {
 	
 	for (; i < arguments.length; i++ ) 
 		for ( var key in arguments[i] ) 
-			if (arguments[i][key] !== undefined)
+			if (typeof arguments[i][key] != 'undefined')
 				ret[key] = arguments[i][key]; 
 	
 	return ret;
@@ -214,7 +212,7 @@ Karma.extend({
 	isNumber: function(o){ return typeof o == "number" },
 	isValue: function(o){ return typeof o == "number" || typeof o == "string" },
 	isBoolean: function(o){ return typeof o == "boolean" },
-	isDefined: function(o) { return o !== undefined },
+	isDefined: function(o) { return typeof o != "undefined" },
 	
 	// unreliable detection, using documentation to prevent mistake instead
 	isHTML: function(o) { return /^<.+/.test(Karma.trim(o).substring(0,3).toLowerCase()) },
@@ -226,12 +224,12 @@ Karma.extend({
 	// old method !!(window.ActiveXObject && !window.opera) 
 	// new method !window.addEventListener, we used that for feature detection but it turns out to be an IE detector too
 	isIE: !window.addEventListener,
-	isIE6: !!(document.createElement('DIV').style.maxHeight === undefined),
+	isIE6: !!(typeof document.createElement('DIV').style.maxHeight == "undefined"),
 	isIE7: !!(!window.addEventListener && window.XMLHttpRequest && !document.querySelectorAll),
 	isIE8: !!(!window.addEventListener && document.querySelectorAll),
-	isGecko: !(document.getBoxObjectFor === undefined),
+	isGecko: !(typeof document.getBoxObjectFor == "undefined"),
 	isOpera: !!window.opera,
-	isWebkit: !!(!window.opera && !navigator.taintEnable && document.evaluate && document.getBoxObjectFor === undefined),
+	isWebkit: !!(!window.opera && !navigator.taintEnable && document.evaluate && typeof document.getBoxObjectFor == "undefined"),
 	
 	// trim front/ending whitespaces and newlines so innerHTML won't go crazy
 	cleanHTML: function(HTML){ return Karma.trim(HTML).replace(/[\n\r]/g, ' '); },
@@ -918,7 +916,7 @@ Karma.extend({
 			XHR: window.XMLHttpRequest? new XMLHttpRequest(): new ActiveXObject("Microsoft.XMLHTTP")
 		 }, o);
 
-		if (o.XHR === null || o.XHR === undefined) return;
+		if (o.XHR === null || tyoeof o.XHR == "undefined") return;
 		
 		o.XHR.onreadystatechange=function(){
 			try {

@@ -13,7 +13,7 @@ Karma.extend({
 			XHR: window.XMLHttpRequest? new XMLHttpRequest(): new ActiveXObject("Microsoft.XMLHTTP")
 		 }, o);
 
-		if (o.XHR === null || o.XHR === undefined) return;
+		if (o.XHR === null || typeof o.XHR == "undefined") return;
 		
 		o.XHR.onreadystatechange=function(){
 			try {

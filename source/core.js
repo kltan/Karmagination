@@ -76,7 +76,7 @@ Karma.extend = function(o) {
 	
 	for (; i < arguments.length; i++ ) 
 		for ( var key in arguments[i] ) 
-			if (Karma.isDefined(arguments[i][key]))
+			if (typeof arguments[i][key] != 'undefined')
 				ret[key] = arguments[i][key]; 
 	
 	return ret;
@@ -214,7 +214,7 @@ Karma.extend({
 	isNumber: function(o){ return typeof o == "number" },
 	isValue: function(o){ return typeof o == "number" || typeof o == "string" },
 	isBoolean: function(o){ return typeof o == "boolean" },
-	isDefined: function(o) { return typeof != "undefined" },
+	isDefined: function(o) { return typeof o != "undefined" },
 	
 	// unreliable detection, using documentation to prevent mistake instead
 	isHTML: function(o) { return /^<.+/.test(Karma.trim(o).substring(0,3).toLowerCase()) },
@@ -226,12 +226,12 @@ Karma.extend({
 	// old method !!(window.ActiveXObject && !window.opera) 
 	// new method !window.addEventListener, we used that for feature detection but it turns out to be an IE detector too
 	isIE: !window.addEventListener,
-	isIE6: !!(document.createElement('DIV').style.maxHeight === undefined),
+	isIE6: !!(typeof document.createElement('DIV').style.maxHeight == "undefined"),
 	isIE7: !!(!window.addEventListener && window.XMLHttpRequest && !document.querySelectorAll),
 	isIE8: !!(!window.addEventListener && document.querySelectorAll),
-	isGecko: !(document.getBoxObjectFor === undefined),
+	isGecko: !(typeof document.getBoxObjectFor == "undefined"),
 	isOpera: !!window.opera,
-	isWebkit: !!(!window.opera && !navigator.taintEnable && document.evaluate && document.getBoxObjectFor === undefined),
+	isWebkit: !!(!window.opera && !navigator.taintEnable && document.evaluate && typeof document.getBoxObjectFor == "undefined"),
 	
 	// trim front/ending whitespaces and newlines so innerHTML won't go crazy
 	cleanHTML: function(HTML){ return Karma.trim(HTML).replace(/[\n\r]/g, ' '); },

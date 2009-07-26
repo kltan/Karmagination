@@ -8,25 +8,28 @@
  * Build: <?=$build."\n"?>
  *
  * Attribution:
+ * onDOMready based on many JS experts' input especially Dean Edwards, see the unminified source code for names
+ * Custom events based on Dean Edwards' blog post enlightenment
  * CSS and browser detection copyright Valerio Proietti of Mootools
+ * Offsets, dimensions, and extend copyright John Resig of jQuery
  * Selector engine, Sizzle, founded by John Resig, copyright Dojo Foundation
  * Common Feature Test copyright Juriy Zaytsev/kangax
- * onDOMready based on many JS experts' input, see the unminified source code for names
+ * Events, custom events, DOM manipulation/storage/traversal, animation, ajax, class, merge, and all modified code copyright Kean Tan of Karmagination
+ * The API is eeriely similar to jQuery's to tap into the huge plugins offering
  */
  
- //start scope protection
+//start scope protection
 (function(){ 
 		   
 // speeding up reference in non-JIT bytecode
 var window = this,
 	document = this.document,
-	undefined,
 	_Karma = this.Karma,
 	_$ = this.$;
 
 // Constructor Function
 var Karma = this.$ = this.Karma = function( query, context ) {
-	// note: if Karma has not been instatiated, this === global object
+	// note: if Karma has not been instatiated, this === global object, interpreted by most browsers as window
 	if (!(this instanceof Karma)) return new Karma( query, context );
 	
 	query = query || document;
@@ -70,24 +73,57 @@ var Karma = this.$ = this.Karma = function( query, context ) {
 	this.populate(result);
 };
 
-Karma.extend = function(o) {
-	var ret = (arguments.length == 1) ? Karma : (typeof o == 'object' || typeof o == 'function') ? o : {},
-		i = (arguments.length == 1) ? 0 : 1;	
-	
-	for (; i < arguments.length; i++ ) 
-		for ( var key in arguments[i] ) 
-			if (typeof arguments[i][key] != 'undefined')
-				ret[key] = arguments[i][key]; 
-	
-	return ret;
-};
-
-// create an alias
 Karma.fn = Karma.prototype;
 
-Karma.fn.extend = function(o) {
-	Karma.extend(Karma.prototype, o);
-}
+// for extend, use no Karma syntax (pure js) cause they will fail
+Karma.extend = Karma.fn.extend = function() {
+	// copy reference to target object
+	var target = arguments[0] || {}, i = 1, length = arguments.length, deep = false, options;
+
+	// Handle a deep copy situation
+	if ( typeof target == 'boolean' ) {
+		deep = target;
+		target = arguments[1] || {};
+		// skip the boolean and the target
+		i = 2;
+	}
+
+	// Handle case when target is a string or something (possible in deep copy)
+	if ( typeof target != 'object' && typeof target != 'function' )
+		target = {};
+
+	// extend Karma itself if only one argument is passed
+	if ( length == i ) {
+		target = this;
+		--i;
+	}
+
+	for ( ; i < length; i++ )
+		// Only deal with non-null/undefined values
+		if ( (options = arguments[ i ]) != null )
+			// Extend the base object
+			for ( var name in options ) {
+				var src = target[ name ], copy = options[ name ];
+
+				// Prevent never-ending loop
+				if ( target === copy )
+					continue;
+
+				// Recurse if we're merging object values
+				if ( deep && copy && typeof copy == "object" && !copy.nodeType )
+					target[ name ] = Karma.extend( deep, 
+						// Never move original objects, clone them
+						src || ( copy.length != null ? [ ] : { } )
+					, copy );
+
+				// Don't bring in undefined values
+				else if ( typeof copy != 'undefined' )
+					target[ name ] = copy;
+			}
+
+	// Return the modified object
+	return target;
+};
 
 Karma.fn.extend({
 	// populate nodes into Karma, starting from index n
@@ -204,7 +240,8 @@ Karma.extend({
 		return tmp.childNodes.length ? Karma.makeArray(tmp.childNodes) : null;
 	},
 	 
-	// type detection, Miller method for those special cases otherwise typeof is faster
+	// type detection, Miller method for those special cases otherwise typeof is faster, 
+	// undefined munging is slower in all modern browser, use is not recommended
 	isArray: function(o){ return Object.prototype.toString.call(o) == "[object Array]" },
 	isObject: function(o){ return Object.prototype.toString.call(o) == "[object Object]" },
 	isDate: function(o){ return Object.prototype.toString.call(o) == "[object Date]" },
@@ -225,7 +262,7 @@ Karma.extend({
 	// learned something new today from BING, a new-old IE feature detection that's probably better
 	// old method !!(window.ActiveXObject && !window.opera) 
 	// new method !window.addEventListener, we used that for feature detection but it turns out to be an IE detector too
-	isIE: !window.addEventListener,
+	isIE: !!(!window.addEventListener && window.ActiveXObject),
 	isIE6: !!(typeof document.createElement('DIV').style.maxHeight == "undefined"),
 	isIE7: !!(!window.addEventListener && window.XMLHttpRequest && !document.querySelectorAll),
 	isIE8: !!(!window.addEventListener && document.querySelectorAll),
@@ -318,10 +355,14 @@ Karma.extend({
 		}
 		else if (/loaded|complete/.test(document.readyState)) return init();
 		 
-		// loop every 88 ms is good enough
-		if (!Karma.isReady) setTimeout(arguments.callee, 88);
+		// loop every 95 ms is good enough
+		if (!Karma.isReady) setTimeout(arguments.callee, 95);
 	}
 });
+
+// some simulations below to feature test the capabilities of the current browser
+// also populates known attribute names that are problematic
+// values are stored for future use
 
 Karma.temp = {
 	div: document.createElement('DIV'),
@@ -331,15 +372,9 @@ Karma.temp = {
 		try { return Array.prototype.slice.call(document.forms, 0) instanceof Array; } catch (e) { return false; }
 	},
 	
-	contextMenu: function() {
-		if (Karma.temp.div && Karma.temp.div.setAttribute)
-			  Karma.temp.div.setAttribute("oncontextmenu", "");
-		return Karma.isFunction(Karma.temp.oncontextmenu);
-	},
-	
 	attrMap: {
-		'for':'htmlFor',
-		'class':'className',
+		'for': 'htmlFor',
+		'class': 'className',
 		maxlength: 'maxLength',
 		readonly: 'readOnly',
 		rowspan: 'rowSpan',
@@ -358,7 +393,42 @@ Karma.temp = {
 		src: 'src',
 		title: 'title',
 		type: 'type'
-	}
+	},
+	
+	offsets: function(){
+		var body = document.body,
+			container = document.createElement('div'), 
+			innerDiv,
+			checkDiv,
+			table,
+			td,
+			rules,
+			cur_prop,
+			bodyMarginTop = document.body.style.marginTop,
+			html = '<div style="position:absolute;top:0;left:0;margin:0;border:5px solid #000;padding:0;width:1px;height:1px;"><div></div></div><table style="position:absolute;top:0;left:0;margin:0;border:5px solid #000;padding:0;width:1px;height:1px;" cellpadding="0" cellspacing="0"><tr><td></td></tr></table>';
+
+		var rules = { position: 'absolute', top: 0, left: 0, margin: 0, border: 0, width: '1px', height: '1px', visibility: 'hidden' };
+		for ( cur_prop in rules ) container.style[cur_prop] = rules[cur_prop];
+
+		container.innerHTML = html;
+		body.insertBefore(container, body.firstChild);
+		innerDiv = container.firstChild, checkDiv = innerDiv.firstChild, td = innerDiv.nextSibling.firstChild.firstChild;
+
+		this.doesNotAddBorder = (checkDiv.offsetTop !== 5);
+		this.doesAddBorderForTableAndCells = (td.offsetTop === 5);
+
+		innerDiv.style.overflow = 'hidden', innerDiv.style.position = 'relative';
+		this.subtractsBorderForOverflowNotVisible = (checkDiv.offsetTop === -5);
+
+		body.style.marginTop = '1px';
+		this.doesNotIncludeMarginInBodyOffset = (body.offsetTop === 0);
+		body.style.marginTop = bodyMarginTop;
+
+		body.removeChild(container);
+	
+	},
+	
+	calculatedOffsets: false
 }
 
 Karma.uniqueId = 0;

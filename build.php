@@ -52,22 +52,37 @@ else {
 	echo '<a href="'.$output_min.'">Get the production version</a>';
 }
 ?>
-
-<script src="<?=$output_file?>" type="text/javascript"></script>
+<? if (!$jQuery) { ?><script src="<?=$output_file?>" type="text/javascript"></script><? } 
+else { ?><script src="jquery-1.3.2.js" type="text/javascript"></script><? } ?>
 <script language="javascript">
+
 $(function(){
-
-	$('<div><a href="test">Testing event delegation</a></div>').appendTo(document.body);
-	
-	$('a').live('click', function(e){
-		alert('abc');
-		return false;
-	});
-	
-	$('body').live('click', function(e){
-		alert('a');	
-	});
-
+	//console.profile('Animation');
+	$('a').animate({ 
+		opacity: 0,
+		marginLeft: 550
+	}, 1000)
+	.animate({ 
+		opacity: 1,
+		marginLeft: 50
+	}, 1000)
+	.animate({ 
+		opacity: 0,
+		marginLeft: 450
+	}, 1000)
+	.animate({ 
+		opacity: 1,
+		marginLeft: 10
+	}, 1000)
+	.animate({ 
+		opacity: 0,
+		marginLeft: 450
+	}, 1000)
+	.animate({ 
+		opacity: 1,
+		marginLeft: 20
+	}, 1000);
+	//console.profileEnd('Animation');
 });
 </script>
 

@@ -4,8 +4,8 @@
  * Released under the MIT, BSD, and GPL Licenses - Choose one that fit your needs
  * Copyright (c) 2009 Kean L. Tan 
  * Start date: 2009-04-01
- * Build Time: 2009-07-23 07:01:32 PM
- * Build: 1407
+ * Build Time: 2009-07-22 01:50:18 AM
+ * Build: 1406
  *
  * Attribution:
  * onDOMready based on many JS experts' input especially Dean Edwards, see the unminified source code for names
@@ -1815,7 +1815,7 @@ Karma.fn.extend({
 					// these are strings
 					var val = Karma.trim(attributes[prop]);
 					// process the start value
-					FX.start[prop] = FX.start[prop] - 0 || parseFloat(FX.start[prop], 10);
+					FX.start[prop] = Karma.isNumber(FX.start[prop]-0) ? FX.start[prop] - 0 : parseInt(FX.start[prop], 10);
 					
 					// need to add or substract determined from original value
 					if (val.indexOf('+=') == 0 || val.indexOf('-=') == 0) {
@@ -1884,7 +1884,7 @@ Karma.animate = function($el) {
 			else 
 				completeAnimation();
 
-		}, 17); // try to run every 17ms
+		}, 13); // try to run every 13ms
 		
 		var currentFrame = function(elapsed, attr){
 			for (var prop in attr) {
@@ -1942,7 +1942,7 @@ Karma.animate = function($el) {
 					else { 
 						completeAnimation();
 					}
-				}, 17); // try to run every 17ms
+				}, 13); // try to run every 13ms
 			}
 		}
 	}

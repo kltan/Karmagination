@@ -1,9 +1,11 @@
+// I have to fucking rewrite the whole FX module cause it's quite buggy
+
 Karma.fn.extend({
 	/*
 	// visibility hidden ? BAH, I won't support, 
 	// why? Not that I can't, just that using this piece of junk 
 	// introduces terrible inefficiencies if done reliably
-	// sometims it's best that coders know what they are doing
+	// sometimes it's best that coders know what they are doing
 	show: function(){
 		var hidden = Karma.filter(':hidden', this);
 		for(var i=0; i<hidden.length; i++)
@@ -127,7 +129,7 @@ Karma.fn.extend({
 				else { 
 					completeAnimation();
 				}
-			}, 25);
+			}, 20);
 			
 			var setCurrentFrameAttr = function(elapsed, attributes){
 				for(var i=0; i<els.length; i++) {
@@ -151,7 +153,7 @@ Karma.fn.extend({
 				
 				// set all the css properties to the end attributes
 				for(var i=0; i<els.length; i++) {
-					if(els[0].KarmaFX)
+					if(els[i].KarmaFX)
 						Karma(els[i]).css(els[i].KarmaFX[iter].end);
 				}
 				
@@ -163,9 +165,8 @@ Karma.fn.extend({
 				
 				// if there's no next item, do a clean up
 				if(els[0].KarmaFX && !els[0].KarmaFX[iter]) {
-					for(var i=0; i<els.length; i++) {
-						if(els[i].KarmaFX); els[i].KarmaFX = null;
-					}
+					for(var i=0; i<els.length; i++) 
+						els[i].KarmaFX = null;
 				}
 				// start the next animation queue in stack
 				else {

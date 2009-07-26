@@ -25,7 +25,8 @@ $source = array(
 	'source/include.js',
 	'source/event.js',
 	'source/css.js',
-	'source/fx.js',
+	//'source/fx.js',
+	'source/fx2.js',
 	'source/utilities.js',
 	'source/class.js',
 	'source/sizzle.js',
@@ -33,4 +34,6 @@ $source = array(
 );
 
 $output = 'karma';
+$jQuery = true;
+$jQuery = false;
 ?>

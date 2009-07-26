@@ -120,7 +120,7 @@ Karma.fn.extend({
 		for(var i=0;i<$.length;i++) {
 			if (Karma.support.outerHTML) {
 				var string = $[i].outerHTML;
-				cloned.push(Karma(string, this[i].ownerDocument)[0]);
+				cloned.push(Karma(string, this[i].ownerDocument||this[i])[0]);
 			}
 			else 
 				cloned.push($[i].cloneNode(true));
@@ -131,7 +131,7 @@ Karma.fn.extend({
 
 	wrap: function(str){
 		for(var i=0;i<this.length;i++) {
-			var	cloned = Karma(str, this[i].ownerDocument).clone()[0];
+			var	cloned = Karma(str, this[i].ownerDocument||this[i]).clone()[0];
 				
 			this[i].parentNode.replaceChild(cloned, this[i]);
 			cloned.appendChild(this[i]);

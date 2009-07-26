@@ -1,0 +1,53 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="c/karmicFlow.css" />
+<!-- <script language="javascript" type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.2.6/jquery.min.js"></script> -->
+<script type="text/javascript" src="j/karma-0.1.js"></script>
+<script type="text/javascript" src="j/karmicFlow-0.1.js"></script>
+<script language="javascript">
+$(function(){
+	$('#container, #container2').karmicFlow();
+	//alert(document.location.hash);
+});
+</script>
+<title>Karmic Flow 0.1 - Demo</title>
+</head>
+<body>
+
+
+<a class="karmic_flow_controller" href="#slide1">Good times 1</a>
+<a class="karmic_flow_controller" href="#slide2">Good times 2</a>
+<a class="karmic_flow_controller" href="#slide3">Good times 3</a>
+<a class="karmic_flow_controller" href="#slide4">Good times 4</a>
+
+<a class="karmic_flow_prev_controller" href="#container">Prev</a>
+<a class="karmic_flow_next_controller" href="#container">Next</a>
+
+<div id="container" class="karmic_flow_container">
+    <ul class="karmic_flow_slider">
+        <li class="karmic_flow_slides" name="slide1">a</li>
+        <li class="karmic_flow_slides" name="slide2">b</li>
+        <li class="karmic_flow_slides" name="slide3">c</li>
+        <li class="karmic_flow_slides" name="slide4">d</li>
+    </ul>
+</div>
+<br />
+<br />
+<a class="karmic_flow_prev_controller" href="#container2">Prev</a>
+<a class="karmic_flow_next_controller" href="#container2">Next</a>
+
+<div id="container2" class="karmic_flow_container">
+    <ul class="karmic_flow_slider">
+        <li class="karmic_flow_slides" name="slide6">a</li>
+        <li class="karmic_flow_slides" name="slide7">b</li>
+        <li class="karmic_flow_slides" name="slide8">c</li>
+        <li class="karmic_flow_slides" name="slide9">d</li>
+    </ul>
+</div>
+
+
+
+</body>
+</html>

@@ -41,7 +41,7 @@ Karma.fn.extend({
 	data: function(key, value) {
 		// key can be number or string
 		// value can be anything except for undefined
-		if(Karma.isValue(key) && Karma.isDefined(value)) {
+		if(Karma.isDefined(value)) {
 			for (var i=0; i< this.length; i++) {
 				this[i].KarmaMap = this[i].KarmaMap || ++Karma.uniqueId;
 				var map = this[i].KarmaMap;
@@ -52,7 +52,7 @@ Karma.fn.extend({
 			return this;
 		}
 	
-		return Karma.isDefined(Karma.storage[this[0].KarmaMap].KarmaData[key]) ? Karma.storage[this[0].KarmaMap].KarmaData[key] : null;
+		return Karma.storage && Karma.storage[this[0].KarmaMap] && Karma.storage[this[0].KarmaMap].KarmaData && Karma.storage[this[0].KarmaMap].KarmaData[key] ? Karma.storage[this[0].KarmaMap].KarmaData[key] : null;
 	},
 	
 	removeData: function(key) {
@@ -72,10 +72,9 @@ Karma.fn.extend({
 	},
 	
 	removeClass: function(str) {
-		if (Karma.isString(str)) {
-			for(var i=0; i< this.length; i++)
-				this[i].className = this[i].className.replace(str, '');
-		}
+		for(var i=0; i< this.length; i++)
+			this[i].className = this[i].className.replace(str, '');
+
 		return this;
 	},
 	

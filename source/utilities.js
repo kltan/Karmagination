@@ -22,6 +22,12 @@ Karma.extend({
 		}
 	},
 	
+	each: function(o, fn){
+		for (var i = 0; i < o.length; i++) {
+			fn(i, o[i]);
+		}
+	},
+	
 	trim: function(str){
 		/* Thanks to Steven Levithan's benchmark on string trimming */
 		// unicode friendly string trim for older browsers that don't catch all whitespaces

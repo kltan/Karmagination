@@ -1,6 +1,6 @@
 Karma.fn.extend({
 
-	on: function(str, fn) {
+	bind: function(str, fn) {
 		if (!this.length || !Karma.isString(str) || !Karma.isFunction(fn)) return this;
 		
 		str = str.split(/\s+/);
@@ -8,27 +8,40 @@ Karma.fn.extend({
 		for(var j=0; j< str.length; j++) {
 			var ns = str[j].split('.');
 			for(var i=0; i< this.length; i++) {
-				
-				this[i].KarmaMap = this[i].KarmaMap || ++Karma.uniqueId;
-				Karma.storage[this[i].KarmaMap] = Karma.storage[this[i].KarmaMap] || {};
-				
-				var $ = Karma.storage[this[i].KarmaMap].KarmaEvent = Karma.storage[this[i].KarmaMap].KarmaEvent || {};
-				
-				$[ns[0]] = $[ns[0]] || [];
+				if (!(this[i].nodeType == 3 || this[i].nodeType == 8)) {
+					this[i].KarmaMap = this[i].KarmaMap || ++Karma.uniqueId;
+					Karma.storage[this[i].KarmaMap] = Karma.storage[this[i].KarmaMap] || {};
+					
+					var $ = Karma.storage[this[i].KarmaMap].KarmaEvent = Karma.storage[this[i].KarmaMap].KarmaEvent || {};
+					
+					$[ns[0]] = $[ns[0]] || [];
 
-				if (ns.length == 1)
-					$[ns[0]].push(fn);
-
-				else if (ns.length == 2)
-					$[ns[0]][ns[1]] = fn;
-
-				this[i]['on'+ns[0]] = Karma.event.caller;
+					if (ns.length == 1)
+						$[ns[0]].push(fn);
+	
+					else if (ns.length == 2)
+						$[ns[0]][ns[1]] = fn;
+						
+					// if this is a standard cross-browser event, got the list from quirksmode.org
+					if(Karma.event.support[ns[0]])
+						this[i]['on'+ns[0]] = Karma.event.caller;
+					// custom event
+					else if(document.addEventListener) {
+						this[i].addEventListener(ns[0], Karma.event.caller, false);
+					}
+					// custom/proprietary event for M$
+					else {
+						this[i].customEvents = 0;
+						this[i].onpropertychange = Karma.event.caller;
+						//this[i]['on'+ns[0]] = Karma.event.caller;
+					}
+				}
 			}
 		}
 		return this;
 	},
 		
-	un: function(str, fn) {
+	unbind: function(str, fn) {
 		if (!str || !this.length) return this;
 		token = str.split(/\s+/);
 		for(var j=0; j< token.length; j++) {
@@ -55,7 +68,19 @@ Karma.fn.extend({
 		return this;
 	},
 	
-	fire: function(eventName) {
+	one: function(str, fn) {
+		this.on(str, fn);
+					
+		if (this.data('triggerOnce') === null);
+			this.data('triggerOnce', []);
+		
+		this.data('triggerOnce').push(fn);
+		
+		return this;
+		
+	},
+	
+	trigger: function(eventName) {
 		try {
 			for(var i=0; i<this.length; i++)
 				var element = this[i];
@@ -74,27 +99,45 @@ Karma.fn.extend({
 					curEvent.init(event, {});
 					element.dispatchEvent(event);
 				}
+				else {
+					var fakeEvent = document.createEvent("UIEvents");
+					fakeEvent.initEvent(eventName, false, false);
+					element.dispatchEvent(fakeEvent);
+				}
 			}
 			// m$ methods
 			else if(Karma.support.createEventObject){
-				element = (element === document || element === window ) ? document.documentElement : element;
-			
-				var event = document.createEventObject();
+				if(Karma.event.support[eventName]) {
+					element = (element === document || element === window ) ? document.documentElement : element;
 				
-				for(var property in properties)
-					event[property]=properties[property];
-	
-				element.fireEvent("on"+eventName, event);
+					var event = document.createEventObject();
+					
+					for(var property in properties)
+						event[property]=properties[property];
+		
+					element.fireEvent("on"+eventName, event);
+				}
+				else {
+					var current = $(element).data('fireEvent') || [];
+					current.push(eventName);
+					
+					$(element).data('fireEvent', current);
+					element.customEvents++;
+				}
+
+					
+				
+				
 				
 			}
 
 		} catch(e){};
 		
 		return this;
-	},
+	}/*,
 	
 	// preventDefault and stopPropagation is not complete for live yet
-	// need help on this
+	// need help on this, if you want to help just ping @karmagination at twitter
 	live: function(str, fn){
 		var query = this.query;
 		var context = this.context.document || this.context;
@@ -117,13 +160,7 @@ Karma.fn.extend({
 	die: function(str, fn){
 		var context = this.context.document || this.context;
 		return Karma().un(str, fn);
-	}
-});
-
-Karma.extend(Karma.fn, {
-	bind: Karma.fn.on,
-	unbind: Karma.fn.un,
-	trigger: Karma.fn.fire
+	}*/
 });
 
 // create events for w3c browser
@@ -270,9 +307,48 @@ Karma.event = {
 	}
 }
 
-else
-	Karma.event = {};
+else Karma.event = {};
+
+Karma.event.support = {
+	blur: 1,
+	change: 1,
+	click: 1,
+	contextmenu: 1,
+	copy: 1,
+	cut: 1,
+	dblclick: 1,
+	error: 1,
+	focus: 1,
+	keydown: 1,
+	keyup: 1,
+	keypress: 1,
+	mousedown: 1,
+	mousemove: 1,
+	mouseout: 1,
+	mouseover: 1,
+	mouseup: 1,
+	paste: 1,
+	reset: 1,
+	resize: 1,
+	scroll: 1,
+	select: 1,
+	submit: 1,
 	
+	/* HTML 5 events */
+	abort: 1,
+	beforeonload: 1,
+	drag: 1,
+	dragend: 1,
+	dragenter: 1,
+	dragleave: 1,
+	dragover: 1,
+	dragstart: 1,
+	drop: 1,
+	message: 1
+	
+}
+
+// caller the determines how events are fired, also normalizes events
 Karma.event.caller = function(e) {
 	e = window.event || e;
 	
@@ -284,16 +360,13 @@ Karma.event.caller = function(e) {
 		e.preventDefault = function(){ window.event.returnValue = false; };
 		
 	if(!e.target && e.srcElement)
-		e.target = e.srcElement;
+		e.target = e.srcElement || document;
 		
 	if(e.type == 'mouseover' && !e.relatedTarget)
          e.relatedTarget = e.fromElement;
 
 	else if(e.type == 'mouseout' && !e.relatedTarget)
 		e.relatedTarget = e.toElement;
-		
-	if(!e.keyCode && e.charCode)
-		e.keyCode = e.charCode;
 		
 	if(e.wheelDelta) {
 		e.wheelDiff = e.wheelDelta/120;
@@ -303,13 +376,64 @@ Karma.event.caller = function(e) {
 	else if (e.detail)
 		e.wheelDiff = -e.detail/3;
 		
+	// fix for safari textnode
+	if (e.target.nodeType == 3)
+		e.target = e.target.parentNode;
+
+	// Calculate pageX/Y if missing and clientX/Y available
+	if ( e.pageX == null && e.clientX != null ) {
+		var doc = document.documentElement, body = document.body;
+		e.pageX = e.clientX + (doc && doc.scrollLeft || body && body.scrollLeft || 0) - (doc.clientLeft || 0);
+		e.pageY = e.clientY + (doc && doc.scrollTop || body && body.scrollTop || 0) - (doc.clientTop || 0);
+	}
+
+	// Add which for key events
+	if ( !e.which && ((e.charCode || e.charCode === 0) ? e.charCode : e.keyCode) )
+		e.which = e.charCode || e.keyCode;
+
+	// Add metaKey to non-Mac browsers (use ctrl for PC's and Meta for Macs)
+	if ( !e.metaKey && e.ctrlKey )
+		e.metaKey = e.ctrlKey;
+
+	// Add which for click: 1 == left; 2 == middle; 3 == right
+	// Note: button is not normalized, so don't use it
+	if ( !e.which && e.button )
+		e.which = (e.button & 1 ? 1 : ( e.button & 2 ? 3 : ( e.button & 4 ? 2 : 0 ) ));
+
 		
-	if(this.KarmaMap && Karma.storage[this.KarmaMap].KarmaEvent && Karma.storage[this.KarmaMap].KarmaEvent[e.type]) {
+	if(e.propertyName == "customEvents") {
+		alert('csd');
+		var events = $(this).data('fireEvent');
+		for(var index in events) {
+			try {
+				for(var functions in Karma.storage[this.KarmaMap].KarmaEvent[events[index]]) {
+					if(Karma.storage[this.KarmaMap].KarmaEvent[events[index]][functions](e, this) === false) {
+						e.stopPropagation();
+						e.preventDefault();	
+					}	
+				}
+				events[index] = null;
+			} 
+			catch(e){};
+		}
+		$(this).data('fireEvent', events);
+	}
+	
+	else if(this.KarmaMap && Karma.storage[this.KarmaMap].KarmaEvent && Karma.storage[this.KarmaMap].KarmaEvent[e.type]) {
 		for(var functions in Karma.storage[this.KarmaMap].KarmaEvent[e.type]) {
 			if(Karma.storage[this.KarmaMap].KarmaEvent[e.type][functions](e, this) === false) {
 				e.stopPropagation();
 				e.preventDefault();	
 			}
+			
+			var once = Karma(this).data('triggerOnce');
+			if(once) {
+				for (var i = 0; i < once.length; i++) {
+					if(once[i] === Karma.storage[this.KarmaMap].KarmaEvent[e.type][functions]);
+					delete Karma.storage[this.KarmaMap].KarmaEvent[e.type][functions];
+				}
+			}
+			
 		}
 	}
 }

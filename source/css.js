@@ -66,34 +66,41 @@ Karma.fn.extend({
 			return opacity/100;
 		}
 		
-		if (this[0].currentStyle)
-			return this[0].currentStyle[property] ? this[0].currentStyle[property] : this[0].style[property];
+		if(this[0].style) {
+			if (this[0].currentStyle)
+				return this[0].currentStyle[property] ? this[0].currentStyle[property] : this[0].style[property];
 			
-		var computed = document.defaultView.getComputedStyle(this[0], null)[property];
-		
-		if (!computed.length) computed = this[0].style[property];
+			var computed = document.defaultView.getComputedStyle(this[0], null)[property];
 			
-		if (property.toLowerCase().indexOf('color') >= 0) {
-			var color = computed.match(/rgba?\([\d\s,]+\)/);
-			if (color)
-				computed = Karma.rgbToHex(color[0].match(/\d{1,3}/g));
+			if (!computed || !computed.length) computed = this[0].style[property];
+						
+			if (property.toLowerCase().indexOf('color') >= 0) {
+				var color = computed.match(/rgba?\([\d\s,]+\)/);
+				if (color)
+					computed = Karma.rgbToHex(color[0].match(/\d{1,3}/g));
+			}
+			
+			return computed;
 		}
-		
-		return computed;
+		return '';
 	},
 	
-	dimension: function(type){
+	dimension: function(name, border){
 		if(!this.length) return null;
-
-		if (this[0] === window)
-			return (this[0]['client'+type] || this[0]['offset'+type] || window['client'+type] || document.documentElement['client'+type] || document.body['client'+type]);
-			
-		if (this[0] === document.documentElement || this[0] === document) {
-			var val = document.documentElement['offset'+type] || document.documentElement['client'+type];
-			return val < document.body['offset'+type] ? document.body['offset'+type] : val;
-		}
-		
-		return this[0]['offset'+type];
+		return this[0] === window ?
+			// Everyone else use document.documentElement or document.body depending on Quirks vs Standards mode
+			document.compatMode == "CSS1Compat" && document.documentElement[ "client" + name ] || document.body[ "client" + name ] :
+			// Get document width or height
+			this[0] === document ?
+				// Either scroll[Width/Height] or offset[Width/Height], whichever is greater
+				Math.max(
+					document.documentElement["client" + name],
+					document.body["scroll" + name], document.documentElement["scroll" + name],
+					document.body["offset" + name], document.documentElement["offset" + name]
+				) :
+				border ?
+					this[0]['offset'+name]:
+					this[0]['client'+name];
 	},
 	
 	width: function(val){
@@ -105,20 +112,128 @@ Karma.fn.extend({
 	},
 	
 	offset: function() {
-		return this.length ? { top: this[0].offsetTop, left: this[0].offsetLeft }: null;
+		if (!this[0]) return null;
+		// w3c
+		Karma.calculateOffset();
+		if (document.documentElement.getBoundingClientRect) {
+			if ( this[0] === (this[0].ownerDocument||this[0]).body ) {
+				var top = this[0].offsetTop, left = this[0].offsetLeft;
+				if ( Karma.support.offsetDoesNotIncludeMarginInBodyOffset )
+					top  += parseInt(this.css('marginTop'), 10) || 0,
+					left += parseInt(this.css('marginLeft'), 10 ) || 0;
+				return { top: top, left: left };
+			}
+			
+			var box  = this[0].getBoundingClientRect(), 
+				doc = this[0].ownerDocument || doc, 
+				body = doc.body, 
+				docElem = doc.documentElement,
+				clientTop = docElem.clientTop || body.clientTop || 0, 
+				clientLeft = docElem.clientLeft || body.clientLeft || 0,
+				top  = box.top  + (self.pageYOffset || /* boxModel &&*/ docElem.scrollTop || body.scrollTop ) - clientTop,
+				left = box.left + (self.pageXOffset || /* boxModel &&*/ docElem.scrollTop || body.scrollLeft) - clientLeft;
+			
+			return { top: top, left: left };
+		}
+		// m$
+		else {
+			var elem = this[0], 
+				offsetParent = elem.offsetParent, 
+				prevOffsetParent = elem,
+				doc = elem.ownerDocument || elem, 
+				computedStyle, 
+				docElem = doc.documentElement,
+				body = doc.body, 
+				defaultView = doc.defaultView,
+				prevComputedStyle = defaultView.getComputedStyle(elem, null),
+				top = elem.offsetTop, 
+				left = elem.offsetLeft;
+	
+			while ( (elem = elem.parentNode) && elem !== body && elem !== docElem ) {
+				computedStyle = defaultView.getComputedStyle(elem, null);
+				top -= elem.scrollTop, 
+				left -= elem.scrollLeft;
+				
+				if ( elem === offsetParent ) {
+					top += elem.offsetTop, 
+					left += elem.offsetLeft;
+					if ( Karma.support.offsetDoesNotAddBorder && !(Karma.support.offsetDoesAddBorderForTableAndCells && /^t(able|d|h)$/i.test(elem.tagName)) )
+						top  += parseInt( computedStyle.borderTopWidth,  10) || 0,
+						left += parseInt( computedStyle.borderLeftWidth, 10) || 0;
+					prevOffsetParent = offsetParent, offsetParent = elem.offsetParent;
+				}
+				
+				if ( Karma.support.offsetSubtractsBorderForOverflowNotVisible && computedStyle.overflow !== "visible" )
+					top  += parseInt( computedStyle.borderTopWidth,  10) || 0,
+					left += parseInt( computedStyle.borderLeftWidth, 10) || 0;
+				prevComputedStyle = computedStyle;
+			}
+	
+			if ( prevComputedStyle.position === "relative" || prevComputedStyle.position === "static" )
+				top  += body.offsetTop,
+				left += body.offsetLeft;
+	
+			if ( prevComputedStyle.position === "fixed" )
+				top  += Math.max(docElem.scrollTop, body.scrollTop),
+				left += Math.max(docElem.scrollLeft, body.scrollLeft);
+	
+			return { top: top, left: left };			
+			
+		}
 	},
 	
 	position: function() {
-		var offset = this.offset(),
-			parent = this[0].offsetParent || document.body || document.documentElement;
-			
-		return this.length ? { left: offset.left - parent.offsetLeft, top: offset.top - parent.offsetTop }: null;
-	}
+		var left = 0, top = 0, results = null;
+
+		if ( this[0] ) {
+			// Get *real* offsetParent
+			var offsetParent = this.offsetParent(),
+				offsetDoc = offsetParent.ownerDocument || offsetParent,
+
+			// Get correct offsets
+			offset       = this.offset(),
+			parentOffset = (offsetDoc.documentElement === offsetParent || offsetDoc.body === offsetParent) ? { top: 0, left: 0 } : offsetParent.offset();
+
+			// Subtract element margins
+			// note: when an element has margin: auto the offsetLeft and marginLeft 
+			// are the same in Safari causing offset.left to incorrectly be 0
+			offset.top  -= parseInt( this.css('marginTop'), 10 ) ||  0;
+			offset.left -= parseInt( this.css('marginLeft'), 10 ) ||  0;
+
+			// Add offsetParent borders
+			parentOffset.top  += parseInt( Karma(offsetParent).css('borderTopWidth'), 10 ) || 0;
+			parentOffset.left += parseInt( Karma(offsetParent).css('borderLeftWidth'), 10 ) || 0;
+
+			// Subtract the two offsets
+			results = {
+				top:  offset.top  - parentOffset.top,
+				left: offset.left - parentOffset.left
+			};
+		}
+
+		return results;
+	},
+	
+	offsetParent: function() {
+		var offsetParent = this[0].offsetParent || document.body,
+			offsetDoc = offsetParent.ownerDocument || offsetParent;
+		while ( offsetParent && offsetParent !== offsetDoc.documentElement && offsetParent !== offsetDoc.body && Karma(offsetParent).css('position') == 'static')
+			offsetParent = offsetParent.offsetParent;
+		return Karma(offsetParent);
+	},
+	
+	scrollTop: function() {
+		return this.css('scrollTop');
+	},
+	
+	scrollLeft: function() {
+		return this.css('scrollLeft');
+	}	
 });
 
 Karma.fn.css = Karma.fn.style;
 
-Karma.extend(Karma, {
+Karma.extend({
 	rgbToHex: function(array){
 		if (array.length < 3) return null;
 		if (array.length == 4 && array[3] == 0 && !array) return 'transparent';
@@ -128,6 +243,20 @@ Karma.extend(Karma, {
 			hex.push((bit.length == 1) ? '0' + bit : bit);
 		}
 		return '#' + hex.join('');
+	},
+	
+	calculateOffset: function(){
+		if (Karma.temp.calculatedOffsets) return;
+		
+		var offset = new Karma.temp.offsets();
+		Karma.extend(Karma.support, {
+			offsetDoesNotAddBorder: offset.doesNotAddBorder,
+			offsetDoesAddBorderForTableAndCells: offset.doesAddBorderForTableAndCells,
+			offsetSubtractsBorderForOverflowNotVisible: offset.subtractsBorderForOverflowNotVisible,
+			offsetDoesNotIncludeMarginInBodyOffset: offset.doesNotIncludeMarginInBodyOffset
+		});
+		
+		Karma.temp.calculatedOffsets = true;
 	}
 });
 

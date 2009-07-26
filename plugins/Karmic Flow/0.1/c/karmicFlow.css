@@ -1,0 +1,25 @@
+div.karmic_flow_container {
+	overflow: hidden; 
+	position: relative;
+	
+	/* optional */
+	width: 50%; 
+	height: 200px;
+}
+
+ul.karmic_flow_slider, ul.karmic_flow_slider li {
+	list-style:none;
+	margin: 0;
+	padding: 0;
+}
+
+ul.karmic_flow_slider {
+	overflow: hidden; 
+	position: relative;
+	/* optional */
+	margin-left: 0;
+}
+
+ul.karmic_flow_slider li {
+	float: left;
+}

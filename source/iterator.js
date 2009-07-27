@@ -1,21 +1,21 @@
 Karma.fn.extend({
 	each: function(fn){
 		for (var i=0; i< this.length; i++)
-			fn(this[i], i);
+			fn.call(this[i], i);
 		return this;
 	},
 	
 	map: function(fn) {
 		var ret = [];
 		for (var i=0; i< this.length; i++)
-			ret.push(fn(this[i], i));
+			ret.push(fn.call(this[i], i));
 		return ret;
 	},
 	
 	grep: function(fn) {
 		var ret = [];
 		for (var i=0; i< this.length; i++) {
-			var result = fn(this[i], i);
+			var result = fn.call(this[i], i);
 			if (result !== false)
 				ret.push(result);
 		}

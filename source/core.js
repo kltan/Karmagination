@@ -14,8 +14,6 @@
  * Offsets, dimensions, and extend copyright John Resig of jQuery
  * Selector engine, Sizzle, founded by John Resig, copyright Dojo Foundation
  * Common Feature Test copyright Juriy Zaytsev/kangax
- * Events, custom events, DOM manipulation/storage/traversal, animation, ajax, class, merge, and all modified code copyright Kean Tan of Karmagination
- * The API is eeriely similar to jQuery's to tap into the huge plugins offering
  */
  
 //start scope protection
@@ -51,6 +49,7 @@ var Karma = this.$ = this.Karma = function( query, context ) {
 	
 	// string is most used query
 	else if(typeof query == "string" && query.length > 0) {
+		query = Karma.trim(query);
 		this.query = query;
 		if (context.document) context = context.document;
 		// if HTML string passed
@@ -254,7 +253,7 @@ Karma.extend({
 	isDefined: function(o) { return typeof o != "undefined" },
 	
 	// unreliable detection, using documentation to prevent mistake instead
-	isHTML: function(o) { return /^<.+/.test(Karma.trim(o).substring(0,3).toLowerCase()) },
+	isHTML: function(o) { return /^<.+/.test(o.substring(0,3)) },
 	isKarma: function(o) { return !!o.isKarma },
 
 	
@@ -271,7 +270,7 @@ Karma.extend({
 	isWebkit: !!(!window.opera && !navigator.taintEnable && document.evaluate && typeof document.getBoxObjectFor == "undefined"),
 	
 	// trim front/ending whitespaces and newlines so innerHTML won't go crazy
-	cleanHTML: function(HTML){ return Karma.trim(HTML).replace(/[\n\r]/g, ' '); },
+	cleanHTML: function(HTML){ return Karma.replace(/[\n\r]/g, ' '); },
 	
 	// used internally, only works for array-like objects
 	makeArray: function(o) {

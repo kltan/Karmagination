@@ -407,7 +407,7 @@ Karma.event.caller = function(e) {
 		for(var index in events) {
 			try {
 				for(var functions in Karma.storage[this.KarmaMap].KarmaEvent[events[index]]) {
-					if(Karma.storage[this.KarmaMap].KarmaEvent[events[index]][functions](e, this) === false) {
+					if(Karma.storage[this.KarmaMap].KarmaEvent[events[index]][functions].call(this, e) === false) {
 						e.stopPropagation();
 						e.preventDefault();	
 					}	
@@ -421,7 +421,7 @@ Karma.event.caller = function(e) {
 	
 	else if(this.KarmaMap && Karma.storage[this.KarmaMap].KarmaEvent && Karma.storage[this.KarmaMap].KarmaEvent[e.type]) {
 		for(var functions in Karma.storage[this.KarmaMap].KarmaEvent[e.type]) {
-			if(Karma.storage[this.KarmaMap].KarmaEvent[e.type][functions](e, this) === false) {
+			if(Karma.storage[this.KarmaMap].KarmaEvent[e.type][functions].call(this, e) === false) {
 				e.stopPropagation();
 				e.preventDefault();	
 			}

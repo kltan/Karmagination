@@ -4,8 +4,8 @@
  * Released under the MIT, BSD, and GPL Licenses - Choose one that fit your needs
  * Copyright (c) 2009 Kean L. Tan 
  * Start date: 2009-04-01
- * Build Time: 2009-07-23 07:01:32 PM
- * Build: 1407
+ * Build Time: 2009-07-27 07:55:05 PM
+ * Build: 1451
  *
  * Attribution:
  * onDOMready based on many JS experts' input especially Dean Edwards, see the unminified source code for names
@@ -14,8 +14,6 @@
  * Offsets, dimensions, and extend copyright John Resig of jQuery
  * Selector engine, Sizzle, founded by John Resig, copyright Dojo Foundation
  * Common Feature Test copyright Juriy Zaytsev/kangax
- * Events, custom events, DOM manipulation/storage/traversal, animation, ajax, class, merge, and all modified code copyright Kean Tan of Karmagination
- * The API is eeriely similar to jQuery's to tap into the huge plugins offering
  */
  
 //start scope protection
@@ -51,6 +49,7 @@ var Karma = this.$ = this.Karma = function( query, context ) {
 	
 	// string is most used query
 	else if(typeof query == "string" && query.length > 0) {
+		query = Karma.trim(query);
 		this.query = query;
 		if (context.document) context = context.document;
 		// if HTML string passed
@@ -253,7 +252,7 @@ Karma.extend({
 	isDefined: function(o) { return typeof o != "undefined" },
 	
 	// unreliable detection, using documentation to prevent mistake instead
-	isHTML: function(o) { return /^<.+/.test(Karma.trim(o).substring(0,3).toLowerCase()) },
+	isHTML: function(o) { return /^<.+/.test(o.substring(0,3)) },
 	isKarma: function(o) { return !!o.isKarma },
 
 	
@@ -270,7 +269,7 @@ Karma.extend({
 	isWebkit: !!(!window.opera && !navigator.taintEnable && document.evaluate && typeof document.getBoxObjectFor == "undefined"),
 	
 	// trim front/ending whitespaces and newlines so innerHTML won't go crazy
-	cleanHTML: function(HTML){ return Karma.trim(HTML).replace(/[\n\r]/g, ' '); },
+	cleanHTML: function(HTML){ return Karma.replace(/[\n\r]/g, ' '); },
 	
 	// used internally, only works for array-like objects
 	makeArray: function(o) {
@@ -472,21 +471,21 @@ Karma.fn.extend({
 Karma.fn.extend({
 	each: function(fn){
 		for (var i=0; i< this.length; i++)
-			fn(this[i], i);
+			fn.call(this[i], i);
 		return this;
 	},
 	
 	map: function(fn) {
 		var ret = [];
 		for (var i=0; i< this.length; i++)
-			ret.push(fn(this[i], i));
+			ret.push(fn.call(this[i], i));
 		return ret;
 	},
 	
 	grep: function(fn) {
 		var ret = [];
 		for (var i=0; i< this.length; i++) {
-			var result = fn(this[i], i);
+			var result = fn.call(this[i], i);
 			if (result !== false)
 				ret.push(result);
 		}
@@ -1466,7 +1465,7 @@ Karma.event.caller = function(e) {
 		for(var index in events) {
 			try {
 				for(var functions in Karma.storage[this.KarmaMap].KarmaEvent[events[index]]) {
-					if(Karma.storage[this.KarmaMap].KarmaEvent[events[index]][functions](e, this) === false) {
+					if(Karma.storage[this.KarmaMap].KarmaEvent[events[index]][functions].call(this, e) === false) {
 						e.stopPropagation();
 						e.preventDefault();	
 					}	
@@ -1480,7 +1479,7 @@ Karma.event.caller = function(e) {
 	
 	else if(this.KarmaMap && Karma.storage[this.KarmaMap].KarmaEvent && Karma.storage[this.KarmaMap].KarmaEvent[e.type]) {
 		for(var functions in Karma.storage[this.KarmaMap].KarmaEvent[e.type]) {
-			if(Karma.storage[this.KarmaMap].KarmaEvent[e.type][functions](e, this) === false) {
+			if(Karma.storage[this.KarmaMap].KarmaEvent[e.type][functions].call(this, e) === false) {
 				e.stopPropagation();
 				e.preventDefault();	
 			}
@@ -1543,11 +1542,12 @@ Karma.fn.extend({
 			property = Karma.support.styleFloat ? 'styleFloat' : 'cssFloat';
 		
 		// convert integers to strings;
-		if (Karma.isNumber(value)) value += 'px';
+		if (value * 1) value += 'px';
 		
-		if(Karma.isString(value)) // just to be safe
-			for (var i=0; i < this.length; i++)
-				this[i].style[property] = value;
+		// if(Karma.isString(value)) // just to be safe
+		// I think there's no need cause browser can recover from error
+		for (var i=0; i < this.length; i++)
+			this[i].style[property] = value;
 		
 		return this;
 	},
@@ -1803,32 +1803,30 @@ Karma.fn.extend({
 				// get the current unanimated attribute
 				FX.start[prop] = $curEl.getStyle(prop);
 				
+				var temp_prop = attributes[prop]* 1;
 				// get start properties and convert to integer or float
 				// set the final attribute if they are in numbers, no calculation
-				if (Karma.isNumber(attributes[prop] - 0)) {
-					FX.start[prop] = (prop == 'opacity') ? parseFloat(FX.start[prop]) : parseInt(FX.start[prop], 10);
-					FX.end[prop] = attributes[prop] - 0;
+				if (Karma.isNumber(temp_prop)) {
+					FX.start[prop] = FX.start[prop] * 1 || parseInt(FX.start[prop], 10);
+					FX.end[prop] = temp_prop;
 				}
 				
-				// else we have to detemine the end attributes, ie 1.6 em ??? px
+				// else we have to detemine the end attributes, ie 1.6 em = how many px
 				else {
 					// these are strings
 					var val = Karma.trim(attributes[prop]);
 					// process the start value
-					FX.start[prop] = FX.start[prop] - 0 || parseFloat(FX.start[prop], 10);
+					FX.start[prop] = FX.start[prop] * 1 || parseFloat(FX.start[prop]);
 					
 					// need to add or substract determined from original value
 					if (val.indexOf('+=') == 0 || val.indexOf('-=') == 0) {
 					
-						var cur_val = val.substr(2);
+						var cur_val = val.substr(2),
+							temp_val = cur_val * 1;
 						
 						// number looks like strings, means all digits /\d/
-						if (Karma.isNumber(cur_val-0))
-							cur_val = cur_val-0;
-						
-						// pixels
-						else if (val.indexOf('px') > 0)
-							cur_val = parseInt(cur_val, 10);
+						if (temp_val || val.indexOf('px') > 0)
+							cur_val = temp_val || parseInt(cur_val, 10);
 						
 						// other units, opacity, will not hit this so no problem to parseInt
 						else {
@@ -1852,22 +1850,19 @@ Karma.fn.extend({
 				}
 			}
 			KarmaFX.push(FX);
-			Karma.animate($curEl);
+			Karma.temp.animate($curEl);
 		}
-		
 
-		
 		return this;
 	}
 });
 
-Karma.animate = function($el) {
-	var KarmaFX = $el.data('KarmaFX');
-	// first one on queue runs immediately. The rest have to wait for the complete animation to fire next in queue
+Karma.temp.animate = function($curEl) {
+	var KarmaFX = $curEl.data('KarmaFX');
 	if (KarmaFX.length == 1) {
 		var iter = 0,
 			startTimer = new Date().getTime(),
-			endTimer = startTimer + KarmaFX[iter].duration || 0,
+			endTimer = startTimer + (KarmaFX[iter].duration || 0),
 			timer;
 			
 		timer = setInterval(function(){
@@ -1893,7 +1888,7 @@ Karma.animate = function($el) {
 					duration = KarmaFX[iter].duration,					
 					curval = KarmaFX[iter].easing(elapsed, start, end-start, duration);
 				
-				$el.setStyle(prop, curval);
+				$curEl.setStyle(prop, curval);
 			}
 			// just executing on every step
 			if (KarmaFX && KarmaFX[iter] && KarmaFX[iter].step)	KarmaFX[iter].step();
@@ -1903,8 +1898,8 @@ Karma.animate = function($el) {
 			clearInterval(timer);
 			
 			// set to end values;
-			if(KarmaFX && KarmaFX[iter] && KarmaFX[iter].end) 
-				$el.css(KarmaFX[iter].end);
+			if(KarmaFX && KarmaFX[iter]) 
+				$curEl.css(KarmaFX[iter].end);
 
 			// if there's a call back
 			if(KarmaFX && KarmaFX[iter] && KarmaFX[iter].callback) 
@@ -1919,12 +1914,12 @@ Karma.animate = function($el) {
 			// start the next animation queue in stack
 			else {
 				var startTimer = new Date().getTime(),
-					endTimer = startTimer + KarmaFX[iter].duration || 0;
+					endTimer = startTimer + (KarmaFX[iter].duration || 0);
 					
 				if (KarmaFX && KarmaFX[iter]) {
 					for (var prop in KarmaFX[iter].end) {
 						// we assume if it has not been animated, the value stay the same
-						KarmaFX[iter].start[prop] = Karma.isNumber(KarmaFX[iter-1].end[prop]-0) ? KarmaFX[iter-1].end[prop]-0 : KarmaFX[iter].start[prop];
+						KarmaFX[iter].start[prop] = KarmaFX[iter-1].end[prop] * 1 || KarmaFX[iter].start[prop];
 					}
 				}
 				

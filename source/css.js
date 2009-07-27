@@ -43,11 +43,12 @@ Karma.fn.extend({
 			property = Karma.support.styleFloat ? 'styleFloat' : 'cssFloat';
 		
 		// convert integers to strings;
-		if (Karma.isNumber(value)) value += 'px';
+		if (value * 1) value += 'px';
 		
-		if(Karma.isString(value)) // just to be safe
-			for (var i=0; i < this.length; i++)
-				this[i].style[property] = value;
+		// if(Karma.isString(value)) // just to be safe
+		// I think there's no need cause browser can recover from error
+		for (var i=0; i < this.length; i++)
+			this[i].style[property] = value;
 		
 		return this;
 	},

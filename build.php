@@ -57,7 +57,7 @@ else { ?><script src="jquery-1.3.2.js" type="text/javascript"></script><? } ?>
 <script language="javascript">
 
 $(function(){
-	//console.profile('Animation');
+	console.profile('Animation');
 	$('a').animate({ 
 		opacity: 0,
 		marginLeft: 550
@@ -82,7 +82,7 @@ $(function(){
 		opacity: 1,
 		marginLeft: 20
 	}, 1000);
-	//console.profileEnd('Animation');
+	console.profileEnd('Animation');
 });
 </script>
 

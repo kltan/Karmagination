@@ -13,7 +13,8 @@
  * CSS and browser detection copyright Valerio Proietti of Mootools
  * Offsets, dimensions, and extend copyright John Resig of jQuery
  * Selector engine, Sizzle, founded by John Resig, copyright Dojo Foundation
- * Common Feature Test copyright Juriy Zaytsev/kangax
+ * Common Feature Test, event support detection copyright Juriy Zaytsev/kangax
+ * Animation based loosely on Ryan Morr's FX library
  */
  
 //start scope protection
@@ -270,7 +271,7 @@ Karma.extend({
 	isWebkit: !!(!window.opera && !navigator.taintEnable && document.evaluate && typeof document.getBoxObjectFor == "undefined"),
 	
 	// trim front/ending whitespaces and newlines so innerHTML won't go crazy
-	cleanHTML: function(HTML){ return Karma.replace(/[\n\r]/g, ' '); },
+	cleanHTML: function(HTML){ return HTML.replace(/[\n\r]/g, ' '); },
 	
 	// used internally, only works for array-like objects
 	makeArray: function(o) {
@@ -354,8 +355,8 @@ Karma.extend({
 		}
 		else if (/loaded|complete/.test(document.readyState)) return init();
 		 
-		// loop every 95 ms is good enough
-		if (!Karma.isReady) setTimeout(arguments.callee, 95);
+		// loop every 88 ms is good enough
+		if (!Karma.isReady) setTimeout(arguments.callee, 88);
 	}
 });
 
@@ -436,21 +437,30 @@ Karma.storage = {};
 // know the current browser's capabilities, we calculate here and use everywhere without recalculating
 // why isDefined is reliable here, REASON: we just created the ELEMENT and can be sure they are not polluted
 Karma.support = {
-	cssText: Karma.isDefined(Karma.temp.div.style.cssText),
-	cssFloat: Karma.isDefined(Karma.temp.div.style.cssFloat),
-	styleFloat: Karma.isDefined(Karma.temp.div.style.styleFloat),
-	opacity: Karma.isDefined(Karma.temp.div.style.opacity),
-	filter: Karma.isDefined(Karma.temp.div.style.filter),
-	outerHTML: Karma.isDefined(Karma.temp.div.outerHTML),
-	addEventListener: Karma.isDefined(Karma.temp.div.addEventListener),
-	attachEvent: Karma.isDefined(Karma.temp.div.attachEvent),
-	dispatchEvent: Karma.isDefined(Karma.temp.div.dispatchEvent),
-	fireEvent : Karma.isDefined(Karma.temp.div.fireEvent),
-	createEvent: Karma.isDefined(document.createEvent),
-	createEventObject: Karma.isDefined(document.createEventObject),
+	cssText: 'cssText' in Karma.temp.div.style,
+	cssFloat: 'cssFloat' in Karma.temp.div.style,
+	styleFloat: 'styleFloat' in Karma.temp.div.style,
+	opacity: 'opacity' in Karma.temp.div.style,
+	filter: 'filter' in Karma.temp.div.style,
+	outerHTML: 'outerHTML' in Karma.temp.div,
+	addEventListener: 'addEventListener' in Karma.temp.div,
+	attachEvent: 'attachEvent' in Karma.temp.div,
+	dispatchEvent: 'dispatchEvent' in Karma.temp.div,
+	fireEvent : 'fireEvent' in Karma.temp.div,
+	createEvent: 'createEvent' in document,
+	createEventObject: 'createEventObject' in document,
 	nodeListToArray: Karma.temp.nodeListToArray()
 };
 
 // run the function to wait for onDOMready
 Karma.ready();
 
+Karma(function(){
+	if (document.body) {
+		var div = document.createElement("div");
+		div.style.width = div.style.paddingLeft = "1px";
+		document.body.appendChild( div );
+		Karma.support.boxModel = div.offsetWidth == 2;
+		document.body.removeChild( div ).style.display = 'none';
+	}
+});

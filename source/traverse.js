@@ -77,9 +77,9 @@ Karma.fn.extend({
 		
 		for (var i=0; i< $.length; i++) {
 			var parent = $[i].parentNode;
-			while(parent != document) {
+			while(parent !== document) {
 				ancestors.push(parent);
-				parent = parent.parentNode;
+				parent = parent.parentNode || document;
 			}
 		}
 		ancestors = (Karma.isString(query)) ? Karma.filter(query, Karma.unique(ancestors)) : Karma.unique(ancestorss);

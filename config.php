@@ -1,7 +1,7 @@
 <?
 // Settings for Karmagination
 
-$version = '0.1';
+$version = '0.2';
 $time = date('Y-m-d h:i:s A', time());
 
 $build = file_get_contents('build.version');

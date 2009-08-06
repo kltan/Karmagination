@@ -1,22 +1,22 @@
 Karma.Class = function(opts){
 	
-	opts.constructor = opts.constructor || function(){};
+	opts.construct = opts.construct || function(){};
 	
-	opts.constructor.add = function(option){
+	opts.construct.adds = function(option){
 		for (var prop in option)
-			if (prop !== 'constructor') 
-				opts.constructor.prototype[prop] = option[prop];
+			if (prop !== 'construct') 
+				opts.construct.prototype[prop] = option[prop];
 	};
 	
-	opts.constructor.inherit = function(parent){
-   		opts.constructor.prototype.__proto__ = parent.prototype;
-		opts.constructor.prototype.parent = parent;
+	opts.construct.inherits = function(parent){
+   		opts.construct.prototype.__proto__ = parent.prototype;
+		opts.construct.prototype.parent = parent;
 	}
 	
 	for (var prop in opts)
-		if (prop !== 'constructor') 
-			opts.constructor.prototype[prop] = opts[prop];
+		if (prop !== 'construct') 
+			opts.construct.prototype[prop] = opts[prop];
 	
-	return opts.constructor;
+	return opts.construct;
 };
 

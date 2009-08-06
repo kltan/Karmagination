@@ -3,7 +3,7 @@ div.karmic_flow_container {
 	position: relative;
 	
 	/* optional */
-	width: 50%; 
+	width: 500px; 
 	height: 200px;
 }
 
@@ -22,4 +22,17 @@ ul.karmic_flow_slider {
 
 ul.karmic_flow_slider li {
 	float: left;
+}
+
+.karmic_flow_controller_selected {
+	background:#F00;
+	color:#FFF;
+}
+
+.karmic_flow_slide_overflow {
+	overflow:auto;
+}
+
+.karmic_flow_sliding .karmic_flow_slide_overflow {
+	overflow:hidden;
 }

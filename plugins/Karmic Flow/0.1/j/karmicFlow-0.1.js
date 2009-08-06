@@ -23,12 +23,12 @@
 		auto: false
 	}, opts);
 	
-	var $window = $(window);
+	var $documentElement = $(document.documentElement);
 	
 	// first time init, we want delegate all those controllers with different class name so they know their purpose
 	// we do not want to delegate twice
-	if (!$window.data('karmic_flow_init_controller')) {
-		$window.data('karmic_flow_init_controller', 1);
+	if (!$documentElement.data('karmic_flow_init_controller')) {
+		$documentElement.data('karmic_flow_init_controller', 1);
 	
 		$().bind('click', function(e){
 			var el = e.target;

@@ -61,7 +61,7 @@ Karma.fn.extend({
 	empty: function() {
 		for (var i=0; i< this.length; i++) {
 			// don't bitch about this, won't break future browser compatibility
-			if (Karma.isGecko) {
+			/*if (Karma.isGecko) {
 				var parent = Karma.temp.fragment.cloneNode(false);
 				var newEl = this[i].cloneNode(false);
 				
@@ -71,9 +71,9 @@ Karma.fn.extend({
 				this[i] = newEl;
 			}
 			
-			else {
+			else {*/
 				this[i].innerHTML = '';
-			}
+			//}
 		}
 		return this;
 	},
@@ -113,20 +113,39 @@ Karma.fn.extend({
 	},
 	
 	// TODO: clone events
-	clone: function(){
-		var $ = this,
-			cloned = [];
+	clone: function(events){
+		var clone = [],
+			$child;
 
-		for(var i=0;i<$.length;i++) {
+		for(var i=0;i<this.length;i++) {
 			if (Karma.support.outerHTML) {
-				var string = $[i].outerHTML;
-				cloned.push(Karma(string, this[i].ownerDocument||this[i])[0]);
+				clone.push(Karma(this[i].outerHTML, this[i].ownerDocument||this[i])[0]);
+				$child = Karma(clone[i]);
+				$child[0].KarmaMap = ++Karma.uniqueId;
+				Karma.storage[$child[0].KarmaMap] = {};
+
+				// wow outerHTML will copy even elem.KarmaMap which screwed up my rebindings
+				if(events)
+				for (var ev in Karma.storage[this[i].KarmaMap].KarmaEvent) {
+					Karma.storage[$child[0].KarmaMap][ev] = [];
+					for (var fn in Karma.storage[this[i].KarmaMap].KarmaEvent[ev])
+						Karma.storage[$child[0].KarmaMap][ev][fn] = Karma.storage[this[i].KarmaMap].KarmaEvent[ev][fn];
+				}
 			}
-			else 
-				cloned.push($[i].cloneNode(true));
+			else {
+				clone.push(this[i].cloneNode(true));
+				$child = Karma(clone[i]);
+				
+				if(events) {
+					for (var ev in Karma.storage[this[i].KarmaMap].KarmaEvent) 
+						for (var fn in Karma.storage[this[i].KarmaMap].KarmaEvent[ev]) 
+							$child.bind( ev, Karma.storage[this[i].KarmaMap].KarmaEvent[ev][fn] );
+				}
+			}
+
 		}
 
-		return Karma(cloned).stack(this);
+		return Karma(clone).stack(this);
 	},
 
 	wrap: function(str){

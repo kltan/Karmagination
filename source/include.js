@@ -1,41 +1,41 @@
 Karma.extend({
 
-	include: function(opts) {
+	getScript: function(url, success) {
+		var counter = 0,
+			script = [],
+			isDone = false,
+			mylength = url.length || 1;
 		
-		opts = Karma.extend({
-			success: function(){}					
-		}, opts);
-	
-		var counter = 0;
-		
-		// getting the scripts after onDOMready
-		// reason: if you want to insert the script before onDOMready, please use HTML instead because you are not loading it on use
-		// another reason: IE bombs if before onDOMready
-		Karma(function(){ //onDOMready
+		var callback = function(){
+			counter++;
 			
-			var callback = function(){
-				counter++;
-				if (counter == opts.url.length)
-					setTimeout(function(){ opts.success(); }, 40); // weird hack, opera fails if no timeout 
-			};
-			
-			for (var i = 0; i < opts.url.length; i++) {
-				var $script = document.createElement('SCRIPT');
-				$script.type = 'text/javascript';
-				$script.src = opts.url[i];
-				document.documentElement.appendChild($script);
-				
-				if ($script.readyState)
-					$script.onreadystatechange = function() {
-						if ($script.readyState == "loaded" || $script.readyState == "complete")
-							callback();
-					};
-
-				else script.onload = function(){
-					callback();
-				};
+			if (!isDone && counter >= mylength) {
+				isDone = true;
+				success();
 			}
-		});
+		};
+
+		for (var i = 0; i < mylength; i++) {
+			script[i] = document.createElement('SCRIPT');
+			script[i].type = 'text/javascript';
+			script[i].src = url[i] || url;
+			
+			// prevent KB917927, also document.getElementsByTagName('head') is not always available
+			document.documentElement.insertBefore(script[i], document.documentElement.firstChild);
+			
+			if (script[i].readyState) {
+				script[i].onreadystatechange = function() {
+					if (script[i].readyState == "loaded" || script[i].readyState == "complete") {
+						script[i].onreadystatechange = null;
+						callback();
+					}
+				}
+			}
+	
+			else script[i].onload = callback;
+		}
 	}
 });
+
+Karma.include = Karma.getScript;
 

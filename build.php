@@ -15,8 +15,13 @@ pre {margin:3px 0 }
 .passed { color:#0C3 }
 .failed { color:#F00; font-weight:bold }
 td { border: 1px solid #000 }
-div { border: 1px solid #F00; margin: 2px; background:#FFF; width:100%;}
+div { border: 1px solid #F00; margin: 2px; background:#FFF; }
 span { border: 1px solid #0F0; margin: 2px; display:block}
+
+#tryHeight {
+height: 100px;
+padding: 20px;
+}
 </style>
 </head>
 <body>
@@ -57,7 +62,8 @@ else { ?><script src="jquery-1.3.2.js" type="text/javascript"></script><? } ?>
 <script language="javascript">
 
 $(function(){
-	console.profile('Animation');
+	
+		
 	$('a').animate({ 
 		opacity: 0,
 		marginLeft: 550
@@ -82,9 +88,28 @@ $(function(){
 		opacity: 1,
 		marginLeft: 20
 	}, 1000);
-	console.profileEnd('Animation');
+	
+	$('div').animate({
+		width: '500px'
+	});
+	
+	if(window.console && console.profile)
+		console.profile('Animation');	
+	
+	$('a').bind('click', function(){
+		alert('hi');
+		return false;
+	});
+	
+	for(var i = 0; i < 5; i++) {
+		$('a').eq(0).clone(true).appendTo('body');
+	}
+	
+	if(window.console && console.profile)
+		console.profileEnd('Animation');
+	
 });
 </script>
-
+<div id="tryHeight">a</div>
 </body>
 </html>

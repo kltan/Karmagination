@@ -4,8 +4,8 @@
  * Released under the MIT, BSD, and GPL Licenses - Choose one that fit your needs
  * Copyright (c) 2009 Kean L. Tan 
  * Start date: 2009-04-01
- * Build Time: 2009-07-22 01:50:18 AM
- * Build: 1406
+ * Build Time: 2009-08-05 07:55:21 PM
+ * Build: 1746
  *
  * Attribution:
  * onDOMready based on many JS experts' input especially Dean Edwards, see the unminified source code for names
@@ -13,9 +13,8 @@
  * CSS and browser detection copyright Valerio Proietti of Mootools
  * Offsets, dimensions, and extend copyright John Resig of jQuery
  * Selector engine, Sizzle, founded by John Resig, copyright Dojo Foundation
- * Common Feature Test copyright Juriy Zaytsev/kangax
- * Events, custom events, DOM manipulation/storage/traversal, animation, ajax, class, merge, and all modified code copyright Kean Tan of Karmagination
- * The API is eeriely similar to jQuery's to tap into the huge plugins offering
+ * Common Feature Test, event support detection copyright Juriy Zaytsev/kangax
+ * Animation based loosely on Ryan Morr's FX library
  */
  
 //start scope protection
@@ -51,6 +50,7 @@ var Karma = this.$ = this.Karma = function( query, context ) {
 	
 	// string is most used query
 	else if(typeof query == "string" && query.length > 0) {
+		query = Karma.trim(query);
 		this.query = query;
 		if (context.document) context = context.document;
 		// if HTML string passed
@@ -253,7 +253,7 @@ Karma.extend({
 	isDefined: function(o) { return typeof o != "undefined" },
 	
 	// unreliable detection, using documentation to prevent mistake instead
-	isHTML: function(o) { return /^<.+/.test(Karma.trim(o).substring(0,3).toLowerCase()) },
+	isHTML: function(o) { return /^<.+/.test(o.substring(0,3)) },
 	isKarma: function(o) { return !!o.isKarma },
 
 	
@@ -270,7 +270,7 @@ Karma.extend({
 	isWebkit: !!(!window.opera && !navigator.taintEnable && document.evaluate && typeof document.getBoxObjectFor == "undefined"),
 	
 	// trim front/ending whitespaces and newlines so innerHTML won't go crazy
-	cleanHTML: function(HTML){ return Karma.trim(HTML).replace(/[\n\r]/g, ' '); },
+	cleanHTML: function(HTML){ return HTML.replace(/[\n\r]/g, ' '); },
 	
 	// used internally, only works for array-like objects
 	makeArray: function(o) {
@@ -354,8 +354,8 @@ Karma.extend({
 		}
 		else if (/loaded|complete/.test(document.readyState)) return init();
 		 
-		// loop every 95 ms is good enough
-		if (!Karma.isReady) setTimeout(arguments.callee, 95);
+		// loop every 88 ms is good enough
+		if (!Karma.isReady) setTimeout(arguments.callee, 88);
 	}
 });
 
@@ -454,6 +454,15 @@ Karma.support = {
 // run the function to wait for onDOMready
 Karma.ready();
 
+Karma(function(){
+	if (document.body) {
+		var div = document.createElement("div");
+		div.style.width = div.style.paddingLeft = "1px";
+		document.body.appendChild( div );
+		Karma.support.boxModel = div.offsetWidth == 2;
+		document.body.removeChild( div ).style.display = 'none';
+	}
+});
 
 Karma.fn.extend({
 
@@ -472,21 +481,21 @@ Karma.fn.extend({
 Karma.fn.extend({
 	each: function(fn){
 		for (var i=0; i< this.length; i++)
-			fn(this[i], i);
+			fn.call(this[i], i);
 		return this;
 	},
 	
 	map: function(fn) {
 		var ret = [];
 		for (var i=0; i< this.length; i++)
-			ret.push(fn(this[i], i));
+			ret.push(fn.call(this[i], i));
 		return ret;
 	},
 	
 	grep: function(fn) {
 		var ret = [];
 		for (var i=0; i< this.length; i++) {
-			var result = fn(this[i], i);
+			var result = fn.call(this[i], i);
 			if (result !== false)
 				ret.push(result);
 		}
@@ -558,7 +567,7 @@ Karma.fn.extend({
 	empty: function() {
 		for (var i=0; i< this.length; i++) {
 			// don't bitch about this, won't break future browser compatibility
-			if (Karma.isGecko) {
+			/*if (Karma.isGecko) {
 				var parent = Karma.temp.fragment.cloneNode(false);
 				var newEl = this[i].cloneNode(false);
 				
@@ -568,9 +577,9 @@ Karma.fn.extend({
 				this[i] = newEl;
 			}
 			
-			else {
+			else {*/
 				this[i].innerHTML = '';
-			}
+			//}
 		}
 		return this;
 	},
@@ -610,20 +619,39 @@ Karma.fn.extend({
 	},
 	
 	// TODO: clone events
-	clone: function(){
-		var $ = this,
-			cloned = [];
+	clone: function(events){
+		var clone = [],
+			$child;
 
-		for(var i=0;i<$.length;i++) {
+		for(var i=0;i<this.length;i++) {
 			if (Karma.support.outerHTML) {
-				var string = $[i].outerHTML;
-				cloned.push(Karma(string, this[i].ownerDocument||this[i])[0]);
+				clone.push(Karma(this[i].outerHTML, this[i].ownerDocument||this[i])[0]);
+				$child = Karma(clone[i]);
+				$child[0].KarmaMap = ++Karma.uniqueId;
+				Karma.storage[$child[0].KarmaMap] = {};
+
+				// wow outerHTML will copy even elem.KarmaMap which screwed up my rebindings
+				if(events)
+				for (var ev in Karma.storage[this[i].KarmaMap].KarmaEvent) {
+					Karma.storage[$child[0].KarmaMap][ev] = [];
+					for (var fn in Karma.storage[this[i].KarmaMap].KarmaEvent[ev])
+						Karma.storage[$child[0].KarmaMap][ev][fn] = Karma.storage[this[i].KarmaMap].KarmaEvent[ev][fn];
+				}
 			}
-			else 
-				cloned.push($[i].cloneNode(true));
+			else {
+				clone.push(this[i].cloneNode(true));
+				$child = Karma(clone[i]);
+				
+				if(events) {
+					for (var ev in Karma.storage[this[i].KarmaMap].KarmaEvent) 
+						for (var fn in Karma.storage[this[i].KarmaMap].KarmaEvent[ev]) 
+							$child.bind( ev, Karma.storage[this[i].KarmaMap].KarmaEvent[ev][fn] );
+				}
+			}
+
 		}
 
-		return Karma(cloned).stack(this);
+		return Karma(clone).stack(this);
 	},
 
 	wrap: function(str){
@@ -873,7 +901,7 @@ Karma.fn.extend({
 		}
 		
 		// getting property of first element
-		return this.length? this[0].getAttribute(val): null;
+		return this.length? this[0].getAttribute(prop): null;
 	},
 	
 	removeAttr: function(prop) {
@@ -1017,44 +1045,44 @@ Karma.extend({
 
 Karma.extend({
 
-	include: function(opts) {
+	getScript: function(url, success) {
+		var counter = 0,
+			script = [],
+			isDone = false,
+			mylength = url.length || 1;
 		
-		opts = Karma.extend({
-			success: function(){}					
-		}, opts);
-	
-		var counter = 0;
-		
-		// getting the scripts after onDOMready
-		// reason: if you want to insert the script before onDOMready, please use HTML instead because you are not loading it on use
-		// another reason: IE bombs if before onDOMready
-		Karma(function(){ //onDOMready
+		var callback = function(){
+			counter++;
 			
-			var callback = function(){
-				counter++;
-				if (counter == opts.url.length)
-					setTimeout(function(){ opts.success(); }, 40); // weird hack, opera fails if no timeout 
-			};
-			
-			for (var i = 0; i < opts.url.length; i++) {
-				var $script = document.createElement('SCRIPT');
-				$script.type = 'text/javascript';
-				$script.src = opts.url[i];
-				document.documentElement.appendChild($script);
-				
-				if ($script.readyState)
-					$script.onreadystatechange = function() {
-						if ($script.readyState == "loaded" || $script.readyState == "complete")
-							callback();
-					};
-
-				else script.onload = function(){
-					callback();
-				};
+			if (!isDone && counter >= mylength) {
+				isDone = true;
+				success();
 			}
-		});
+		};
+
+		for (var i = 0; i < mylength; i++) {
+			script[i] = document.createElement('SCRIPT');
+			script[i].type = 'text/javascript';
+			script[i].src = url[i] || url;
+			
+			// prevent KB917927, also document.getElementsByTagName('head') is not always available
+			document.documentElement.insertBefore(script[i], document.documentElement.firstChild);
+			
+			if (script[i].readyState) {
+				script[i].onreadystatechange = function() {
+					if (script[i].readyState == "loaded" || script[i].readyState == "complete") {
+						script[i].onreadystatechange = null;
+						callback();
+					}
+				}
+			}
+	
+			else script[i].onload = callback;
+		}
 	}
 });
+
+Karma.include = Karma.getScript;
 
 
 Karma.fn.extend({
@@ -1063,7 +1091,42 @@ Karma.fn.extend({
 		if (!this.length || !Karma.isString(str) || !Karma.isFunction(fn)) return this;
 		
 		str = str.split(/\s+/);
-	
+		
+		// http://thinkweb2.com/projects/prototype/detecting-event-support-without-browser-sniffing/
+		var TAGNAMES = {
+			'select':'input',
+			'change':'input',
+			'submit':'form',
+			'reset':'form',
+			'error':'img',
+			'load':'img',
+			'abort':'img',
+			'unload': 'window'
+		}
+		
+		var isEventSupported = function(eventName) {
+			var el = TAGNAMES[eventName] ? document.createElement(TAGNAMES[eventName]) : Karma.temp.div;
+			
+			if (TAGNAMES[eventName] == 'window')
+				el = window;
+			
+			var onEventName = 'on' + eventName,
+				isSupported = !!(onEventName in el);
+			
+			if (!isSupported) {
+				if (el === window)
+					el = Karma.temp.div;
+
+				el.setAttribute(onEventName, 'return;');
+				isSupported = !!(typeof el[onEventName] == 'function');
+			}
+			
+			el = null;
+			Karma.event.support = Karma.event.support || {};
+			Karma.event.support[eventName] = isSupported;
+			return isSupported;
+		}
+
 		for(var j=0; j< str.length; j++) {
 			var ns = str[j].split('.');
 			for(var i=0; i< this.length; i++) {
@@ -1081,9 +1144,9 @@ Karma.fn.extend({
 					else if (ns.length == 2)
 						$[ns[0]][ns[1]] = fn;
 						
-					// if this is a standard cross-browser event, got the list from quirksmode.org
-					if(Karma.event.support[ns[0]])
+					if(Karma.event.support[ns[0]] || (Karma.event.support[ns[0]] !== false && isEventSupported(ns[0]))) {
 						this[i]['on'+ns[0]] = Karma.event.caller;
+					}
 					// custom event
 					else if(document.addEventListener) {
 						this[i].addEventListener(ns[0], Karma.event.caller, false);
@@ -1092,7 +1155,6 @@ Karma.fn.extend({
 					else {
 						this[i].customEvents = 0;
 						this[i].onpropertychange = Karma.event.caller;
-						//this[i]['on'+ns[0]] = Karma.event.caller;
 					}
 				}
 			}
@@ -1184,10 +1246,6 @@ Karma.fn.extend({
 					element.customEvents++;
 				}
 
-					
-				
-				
-				
 			}
 
 		} catch(e){};
@@ -1367,45 +1425,7 @@ Karma.event = {
 }
 
 else Karma.event = {};
-
-Karma.event.support = {
-	blur: 1,
-	change: 1,
-	click: 1,
-	contextmenu: 1,
-	copy: 1,
-	cut: 1,
-	dblclick: 1,
-	error: 1,
-	focus: 1,
-	keydown: 1,
-	keyup: 1,
-	keypress: 1,
-	mousedown: 1,
-	mousemove: 1,
-	mouseout: 1,
-	mouseover: 1,
-	mouseup: 1,
-	paste: 1,
-	reset: 1,
-	resize: 1,
-	scroll: 1,
-	select: 1,
-	submit: 1,
-	
-	/* HTML 5 events */
-	abort: 1,
-	beforeonload: 1,
-	drag: 1,
-	dragend: 1,
-	dragenter: 1,
-	dragleave: 1,
-	dragover: 1,
-	dragstart: 1,
-	drop: 1,
-	message: 1
-	
-}
+Karma.event.support = {};
 
 // caller the determines how events are fired, also normalizes events
 Karma.event.caller = function(e) {
@@ -1429,16 +1449,18 @@ Karma.event.caller = function(e) {
 		
 	if(e.wheelDelta) {
 		e.wheelDiff = e.wheelDelta/120;
-		if(window.opera)
+		if(Karma.isOpera)
 			e.wheelDiff = -e.wheelDiff;
 	}
 	else if (e.detail)
 		e.wheelDiff = -e.detail/3;
 		
 	// fix for safari textnode
-	if (e.target.nodeType == 3)
-		e.target = e.target.parentNode;
-
+	try {
+		if (e.target.nodeType == 3)
+			e.target = e.target.parentNode;
+	} catch(e){}
+	
 	// Calculate pageX/Y if missing and clientX/Y available
 	if ( e.pageX == null && e.clientX != null ) {
 		var doc = document.documentElement, body = document.body;
@@ -1461,12 +1483,11 @@ Karma.event.caller = function(e) {
 
 		
 	if(e.propertyName == "customEvents") {
-		alert('csd');
 		var events = $(this).data('fireEvent');
 		for(var index in events) {
 			try {
 				for(var functions in Karma.storage[this.KarmaMap].KarmaEvent[events[index]]) {
-					if(Karma.storage[this.KarmaMap].KarmaEvent[events[index]][functions](e, this) === false) {
+					if(Karma.storage[this.KarmaMap].KarmaEvent[events[index]][functions].call(this, e) === false) {
 						e.stopPropagation();
 						e.preventDefault();	
 					}	
@@ -1480,7 +1501,7 @@ Karma.event.caller = function(e) {
 	
 	else if(this.KarmaMap && Karma.storage[this.KarmaMap].KarmaEvent && Karma.storage[this.KarmaMap].KarmaEvent[e.type]) {
 		for(var functions in Karma.storage[this.KarmaMap].KarmaEvent[e.type]) {
-			if(Karma.storage[this.KarmaMap].KarmaEvent[e.type][functions](e, this) === false) {
+			if(Karma.storage[this.KarmaMap].KarmaEvent[e.type][functions].call(this, e) === false) {
 				e.stopPropagation();
 				e.preventDefault();	
 			}
@@ -1497,7 +1518,12 @@ Karma.event.caller = function(e) {
 	}
 }
 
-
+// cleaning up the mess
+Karma(function(){
+	Karma(window).bind('unload', function(){
+		Karma.event.caller = null;
+	});
+});
 Karma.fn.extend({
 	style: function(property, value) {
 		if (Karma.isString(property) && Karma.isValue(value))
@@ -1521,7 +1547,11 @@ Karma.fn.extend({
 				// lesson learnt: feature test W3C standard before proprietary standard 
 				if(Karma.support.opacity) this[i].style.opacity = value;
 				// if we have full opacity, better to remove it to restore the antialiasing ability of IE
-				else if(Karma.support.filter) this[i].style.filter = (parseInt(value, 10) == 1) ? '' : 'alpha(opacity=' + (value * 100) + ')';
+				else if(Karma.support.filter) {
+					// OMFG, MS needs hasLayout for opacity, or it will just work on body
+					this[i].style.zoom = 1;
+					this[i].style.filter = (parseInt(value, 10) == 1) ? '' : 'alpha(opacity=' + (value * 100) + ')';
+				}
 			}
 			
 			return this;
@@ -1542,12 +1572,12 @@ Karma.fn.extend({
 		if (property == 'float')
 			property = Karma.support.styleFloat ? 'styleFloat' : 'cssFloat';
 		
-		// convert integers to strings;
-		if (Karma.isNumber(value)) value += 'px';
+		// concat integers/integer-like strings with px;
+		if (Karma.isNumber(+value)) value += 'px';
 		
 		if(Karma.isString(value)) // just to be safe
-			for (var i=0; i < this.length; i++)
-				this[i].style[property] = value;
+		for (var i=0; i < this.length; i++)
+			this[i].style[property] = value;
 		
 		return this;
 	},
@@ -1562,25 +1592,33 @@ Karma.fn.extend({
 			property = Karma.support.styleFloat ? 'styleFloat' : 'cssFloat';
 		
 		else if (property == 'opacity' && this[0].filters) {
-			try { var opacity = this[0].filters('alpha').opacity; }	catch(e){ return 1; }
+			try { 
+				var opacity = this[0].filters('alpha').opacity;
+			}
+			catch(e){ 
+				return 1; 
+			}
 			return opacity/100;
 		}
 		
+		// check if the current node is stylable or not, window cannot be styled
 		if(this[0].style) {
-			if (this[0].currentStyle)
+			if (this[0].currentStyle) {
+				if (this[0].currentStyle[property] == 'auto' && this[0].style[property] == '' && /^\w*(left|top|right|bottom)\w*$/i.test(property)) return 0;
 				return this[0].currentStyle[property] ? this[0].currentStyle[property] : this[0].style[property];
-			
-			var computed = document.defaultView.getComputedStyle(this[0], null)[property];
-			
-			if (!computed || !computed.length) computed = this[0].style[property];
-						
-			if (property.toLowerCase().indexOf('color') >= 0) {
-				var color = computed.match(/rgba?\([\d\s,]+\)/);
-				if (color)
-					computed = Karma.rgbToHex(color[0].match(/\d{1,3}/g));
 			}
-			
-			return computed;
+			else if ( "getComputedStyle" in document.defaultView ) {
+				var computed = document.defaultView.getComputedStyle(this[0], null)[property];
+				
+				if (!computed || !computed.length) computed = this[0].style[property];
+							
+				if (property.toLowerCase().indexOf('color') >= 0) {
+					var color = computed.match(/rgba?\([\d\s,]+\)/);
+					if (color)
+						computed = Karma.rgbToHex(color[0].match(/\d{1,3}/g));
+				}
+				return computed;
+			}
 		}
 		return '';
 	},
@@ -1604,13 +1642,37 @@ Karma.fn.extend({
 	},
 	
 	width: function(val){
-		return Karma.isValue(val) ? this.setStyle('width', val) : this.dimension('Width');
+		var paddingLeft = parseInt(this.getStyle('paddingLeft'), 10) || 0,
+			paddingRight = parseInt(this.getStyle('paddingRight'), 10) || 0;
+		return Karma.isValue(val) ? this.setStyle('width', val) : this.dimension('Width') - paddingLeft - paddingRight;
 	},
 	
 	height: function(val){
-		return Karma.isValue(val) ? this.setStyle('height', val) : this.dimension('Height');
+		var paddingTop = parseInt(this.getStyle('paddingTop'), 10) || 0,
+			paddingBottom  = parseInt(this.getStyle('paddingBottom'), 10) || 0;
+		return Karma.isValue(val) ? this.setStyle('height', val) : this.dimension('Height') - paddingTop - paddingBottom;
 	},
 	
+	innerWidth: function(){
+		return this.dimension('Width');
+	},
+	
+	innerHeight: function(val){
+		return this.dimension('Height');
+	},
+	
+	outerWidth: function(val, margin){
+		var marginLeft = margin ? parseInt(this.css('marginLeft'), 10) || 0 : 0,
+			marginRight = margin ? parseInt(this.css('marginRight'), 10) || 0 : 0;
+		return this.dimension('Width', 1) + marginLeft + marginRight;
+	},
+	
+	outerHeight: function(val, margin){
+		var marginTop = margin ? parseInt(this.css('marginTop'), 10) || 0 : 0,
+			marginBottom = margin ? parseInt(this.css('marginBottom'), 10) || 0 : 0;
+		return this.dimension('Height', 1) + marginTop + marginBottom;
+	},
+
 	offset: function() {
 		if (!this[0]) return null;
 		// w3c
@@ -1630,8 +1692,8 @@ Karma.fn.extend({
 				docElem = doc.documentElement,
 				clientTop = docElem.clientTop || body.clientTop || 0, 
 				clientLeft = docElem.clientLeft || body.clientLeft || 0,
-				top  = box.top  + (self.pageYOffset || /* boxModel &&*/ docElem.scrollTop || body.scrollTop ) - clientTop,
-				left = box.left + (self.pageXOffset || /* boxModel &&*/ docElem.scrollTop || body.scrollLeft) - clientLeft;
+				top  = box.top  + (self.pageYOffset || Karma.support.boxModel && docElem.scrollTop || body.scrollTop) - clientTop,
+				left = box.left + (self.pageXOffset || Karma.support.boxModel && docElem.scrollTop || body.scrollLeft) - clientLeft;
 			
 			return { top: top, left: left };
 		}
@@ -1766,8 +1828,8 @@ Karma.fn.extend({
 		return this.data('KarmaFX', null);
 	},
 	
-	// YES! I found a way to parse out CSS text (reducing the reflow) and also make camelCasing and hyphenated-form coexists without heavy processing
-	// by using caching mechenism so I don't have to do it every time. Will implement this concept on version 0.2
+	// do not calculate and store upfront, calculate on animating iteration hit
+	// reason, css props can change in the middle
 	animate: function(attributes, duration, callback, easing, step){
 		if (!Karma.isObject(attributes) || !this.length) return this;
 		
@@ -1803,32 +1865,30 @@ Karma.fn.extend({
 				// get the current unanimated attribute
 				FX.start[prop] = $curEl.getStyle(prop);
 				
+				var cur_prop = +attributes[prop];
 				// get start properties and convert to integer or float
 				// set the final attribute if they are in numbers, no calculation
-				if (Karma.isNumber(attributes[prop] - 0)) {
-					FX.start[prop] = (prop == 'opacity') ? parseFloat(FX.start[prop]) : parseInt(FX.start[prop], 10);
-					FX.end[prop] = attributes[prop] - 0;
+				if (Karma.isNumber(cur_prop)) {
+					FX.start[prop] =  +FX.start[prop] || parseInt(FX.start[prop], 10);
+					FX.end[prop] = cur_prop;
 				}
 				
-				// else we have to detemine the end attributes, ie 1.6 em ??? px
+				// else we have to detemine the end attributes, ie 1.6 em = how many px
 				else {
 					// these are strings
 					var val = Karma.trim(attributes[prop]);
 					// process the start value
-					FX.start[prop] = Karma.isNumber(FX.start[prop]-0) ? FX.start[prop] - 0 : parseInt(FX.start[prop], 10);
+					FX.start[prop] = +FX.start[prop] || parseFloat(FX.start[prop]);
 					
 					// need to add or substract determined from original value
 					if (val.indexOf('+=') == 0 || val.indexOf('-=') == 0) {
 					
-						var cur_val = val.substr(2);
+						var cur_val = val.substr(2),
+							temp_val = +cur_val;
 						
-						// number looks like strings, means all digits /\d/
-						if (Karma.isNumber(cur_val-0))
-							cur_val = cur_val-0;
-						
-						// pixels
-						else if (val.indexOf('px') > 0)
-							cur_val = parseInt(cur_val, 10);
+						// number looks like strings, means all digits /\d/ or has a unit of pixel
+						if (temp_val || val.indexOf('px') > 0)
+							cur_val = temp_val || parseInt(cur_val, 10);
 						
 						// other units, opacity, will not hit this so no problem to parseInt
 						else {
@@ -1845,6 +1905,7 @@ Karma.fn.extend({
 					}
 					
 					// all other units like em, pt
+					// using parseInt cause returned value by browser is px
 					else {
 						FX.end[prop] = parseInt($curEl.setStyle(prop, val).getStyle(prop), 10);
 						$curEl.setStyle(prop, FX.start[prop]); // revert to start value
@@ -1852,22 +1913,19 @@ Karma.fn.extend({
 				}
 			}
 			KarmaFX.push(FX);
-			Karma.animate($curEl);
+			Karma.temp.animate($curEl);
 		}
-		
 
-		
 		return this;
 	}
 });
 
-Karma.animate = function($el) {
-	var KarmaFX = $el.data('KarmaFX');
-	// first one on queue runs immediately. The rest have to wait for the complete animation to fire next in queue
+Karma.temp.animate = function($curEl) {
+	var KarmaFX = $curEl.data('KarmaFX');
 	if (KarmaFX.length == 1) {
 		var iter = 0,
 			startTimer = new Date().getTime(),
-			endTimer = startTimer + KarmaFX[iter].duration || 0,
+			endTimer = startTimer + (KarmaFX[iter].duration || 0),
 			timer;
 			
 		timer = setInterval(function(){
@@ -1893,7 +1951,7 @@ Karma.animate = function($el) {
 					duration = KarmaFX[iter].duration,					
 					curval = KarmaFX[iter].easing(elapsed, start, end-start, duration);
 				
-				$el.setStyle(prop, curval);
+				$curEl.setStyle(prop, curval);
 			}
 			// just executing on every step
 			if (KarmaFX && KarmaFX[iter] && KarmaFX[iter].step)	KarmaFX[iter].step();
@@ -1903,8 +1961,8 @@ Karma.animate = function($el) {
 			clearInterval(timer);
 			
 			// set to end values;
-			if(KarmaFX && KarmaFX[iter] && KarmaFX[iter].end) 
-				$el.css(KarmaFX[iter].end);
+			if(KarmaFX && KarmaFX[iter]) 
+				$curEl.css(KarmaFX[iter].end);
 
 			// if there's a call back
 			if(KarmaFX && KarmaFX[iter] && KarmaFX[iter].callback) 
@@ -1919,12 +1977,13 @@ Karma.animate = function($el) {
 			// start the next animation queue in stack
 			else {
 				var startTimer = new Date().getTime(),
-					endTimer = startTimer + KarmaFX[iter].duration || 0;
+					endTimer = startTimer + (KarmaFX[iter].duration || 0);
 					
 				if (KarmaFX && KarmaFX[iter]) {
 					for (var prop in KarmaFX[iter].end) {
-						// we assume if it has not been animated, the value stay the same
-						KarmaFX[iter].start[prop] = Karma.isNumber(KarmaFX[iter-1].end[prop]-0) ? KarmaFX[iter-1].end[prop]-0 : KarmaFX[iter].start[prop];
+						var cur_val = $curEl.getStyle(prop);
+						// we assume if it has not been animated, the value stays the same
+						KarmaFX[iter].start[prop] = +cur_val || parseFloat(cur_val);
 					}
 				}
 				
@@ -1990,7 +2049,15 @@ Karma.extend({
 		/* Thanks to Steven Levithan's benchmark on string trimming */
 		// unicode friendly string trim for older browsers that don't catch all whitespaces
 		// string.trim() is in JS 1.8.1, supported by FF 3.5
-		return str.trim ? str.trim() : str.replace(/^[\s\xA0]+/, '').replace(/[\s\xA0]+$/, ''); 
+		// Using Luca Guidi's string trim for non native trim method
+		if(str.trim)
+		   return str.trim();
+		
+		var ws = /\s/, _start = 0, end = str.length;
+		while(ws.test(str.charAt(_start++)));
+		while(ws.test(str.charAt(--end)));
+		return str.slice(_start - 1, end + 1);
+		// : str.replace(/^[\s\xA0]+/, '').replace(/[\s\xA0]+$/, ''); 
 	},
 			 
 	grep: function(o, fn) {
@@ -2027,24 +2094,24 @@ Karma.extend({
 
 Karma.Class = function(opts){
 	
-	opts.constructor = opts.constructor || function(){};
+	opts.construct = opts.construct || function(){};
 	
-	opts.constructor.add = function(option){
+	opts.construct.adds = function(option){
 		for (var prop in option)
-			if (prop !== 'constructor') 
-				opts.constructor.prototype[prop] = option[prop];
+			if (prop !== 'construct') 
+				opts.construct.prototype[prop] = option[prop];
 	};
 	
-	opts.constructor.inherit = function(parent){
-   		opts.constructor.prototype.__proto__ = parent.prototype;
-		opts.constructor.prototype.parent = parent;
+	opts.construct.inherits = function(parent){
+   		opts.construct.prototype.__proto__ = parent.prototype;
+		opts.construct.prototype.parent = parent;
 	}
 	
 	for (var prop in opts)
-		if (prop !== 'constructor') 
-			opts.constructor.prototype[prop] = opts[prop];
+		if (prop !== 'construct') 
+			opts.construct.prototype[prop] = opts[prop];
 	
-	return opts.constructor;
+	return opts.construct;
 };
 
 

@@ -4,7 +4,42 @@ Karma.fn.extend({
 		if (!this.length || !Karma.isString(str) || !Karma.isFunction(fn)) return this;
 		
 		str = str.split(/\s+/);
-	
+		
+		// http://thinkweb2.com/projects/prototype/detecting-event-support-without-browser-sniffing/
+		var TAGNAMES = {
+			'select':'input',
+			'change':'input',
+			'submit':'form',
+			'reset':'form',
+			'error':'img',
+			'load':'img',
+			'abort':'img',
+			'unload': 'window'
+		}
+		
+		var isEventSupported = function(eventName) {
+			var el = TAGNAMES[eventName] ? document.createElement(TAGNAMES[eventName]) : Karma.temp.div;
+			
+			if (TAGNAMES[eventName] == 'window')
+				el = window;
+			
+			var onEventName = 'on' + eventName,
+				isSupported = !!(onEventName in el);
+			
+			if (!isSupported) {
+				if (el === window)
+					el = Karma.temp.div;
+
+				el.setAttribute(onEventName, 'return;');
+				isSupported = !!(typeof el[onEventName] == 'function');
+			}
+			
+			el = null;
+			Karma.event.support = Karma.event.support || {};
+			Karma.event.support[eventName] = isSupported;
+			return isSupported;
+		}
+
 		for(var j=0; j< str.length; j++) {
 			var ns = str[j].split('.');
 			for(var i=0; i< this.length; i++) {
@@ -22,9 +57,9 @@ Karma.fn.extend({
 					else if (ns.length == 2)
 						$[ns[0]][ns[1]] = fn;
 						
-					// if this is a standard cross-browser event, got the list from quirksmode.org
-					if(Karma.event.support[ns[0]])
+					if(Karma.event.support[ns[0]] || (Karma.event.support[ns[0]] !== false && isEventSupported(ns[0]))) {
 						this[i]['on'+ns[0]] = Karma.event.caller;
+					}
 					// custom event
 					else if(document.addEventListener) {
 						this[i].addEventListener(ns[0], Karma.event.caller, false);
@@ -33,7 +68,6 @@ Karma.fn.extend({
 					else {
 						this[i].customEvents = 0;
 						this[i].onpropertychange = Karma.event.caller;
-						//this[i]['on'+ns[0]] = Karma.event.caller;
 					}
 				}
 			}
@@ -125,10 +159,6 @@ Karma.fn.extend({
 					element.customEvents++;
 				}
 
-					
-				
-				
-				
 			}
 
 		} catch(e){};
@@ -308,45 +338,7 @@ Karma.event = {
 }
 
 else Karma.event = {};
-
-Karma.event.support = {
-	blur: 1,
-	change: 1,
-	click: 1,
-	contextmenu: 1,
-	copy: 1,
-	cut: 1,
-	dblclick: 1,
-	error: 1,
-	focus: 1,
-	keydown: 1,
-	keyup: 1,
-	keypress: 1,
-	mousedown: 1,
-	mousemove: 1,
-	mouseout: 1,
-	mouseover: 1,
-	mouseup: 1,
-	paste: 1,
-	reset: 1,
-	resize: 1,
-	scroll: 1,
-	select: 1,
-	submit: 1,
-	
-	/* HTML 5 events */
-	abort: 1,
-	beforeonload: 1,
-	drag: 1,
-	dragend: 1,
-	dragenter: 1,
-	dragleave: 1,
-	dragover: 1,
-	dragstart: 1,
-	drop: 1,
-	message: 1
-	
-}
+Karma.event.support = {};
 
 // caller the determines how events are fired, also normalizes events
 Karma.event.caller = function(e) {
@@ -370,16 +362,18 @@ Karma.event.caller = function(e) {
 		
 	if(e.wheelDelta) {
 		e.wheelDiff = e.wheelDelta/120;
-		if(window.opera)
+		if(Karma.isOpera)
 			e.wheelDiff = -e.wheelDiff;
 	}
 	else if (e.detail)
 		e.wheelDiff = -e.detail/3;
 		
 	// fix for safari textnode
-	if (e.target.nodeType == 3)
-		e.target = e.target.parentNode;
-
+	try {
+		if (e.target.nodeType == 3)
+			e.target = e.target.parentNode;
+	} catch(e){}
+	
 	// Calculate pageX/Y if missing and clientX/Y available
 	if ( e.pageX == null && e.clientX != null ) {
 		var doc = document.documentElement, body = document.body;
@@ -402,7 +396,6 @@ Karma.event.caller = function(e) {
 
 		
 	if(e.propertyName == "customEvents") {
-		alert('csd');
 		var events = $(this).data('fireEvent');
 		for(var index in events) {
 			try {
@@ -438,3 +431,9 @@ Karma.event.caller = function(e) {
 	}
 }
 
+// cleaning up the mess
+Karma(function(){
+	Karma(window).bind('unload', function(){
+		Karma.event.caller = null;
+	});
+});

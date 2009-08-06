@@ -4,12 +4,11 @@
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 <link rel="stylesheet" type="text/css" href="c/karmicFlow.css" />
 <!-- <script language="javascript" type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.2.6/jquery.min.js"></script> -->
-<script type="text/javascript" src="j/karma-0.1.js"></script>
-<script type="text/javascript" src="j/karmicFlow-0.1.js"></script>
+<script type="text/javascript" src="/short/karma-0.1.js"></script>
+<script type="text/javascript" src="j/karmic-flow-0.1.js"></script>
 <script language="javascript">
 $(function(){
 	$('#container, #container2').karmicFlow();
-	//alert(document.location.hash);
 });
 </script>
 <title>Karmic Flow 0.1 - Demo</title>
@@ -17,17 +16,50 @@ $(function(){
 <body>
 
 
-<a class="karmic_flow_controller" href="#slide1">Good times 1</a>
-<a class="karmic_flow_controller" href="#slide2">Good times 2</a>
-<a class="karmic_flow_controller" href="#slide3">Good times 3</a>
-<a class="karmic_flow_controller" href="#slide4">Good times 4</a>
+<a class="karmic_flow_controller karmic_flow_controller_selected" href="#slide1" target="container">Good times 1</a>
+<a class="karmic_flow_controller" href="#slide2" target="container">Good times 2</a>
+<a class="karmic_flow_controller" href="#slide3" target="container">Good times 3</a>
+<a class="karmic_flow_controller" href="#slide4" target="container">Good times 4</a>
 
-<a class="karmic_flow_prev_controller" href="#container">Prev</a>
-<a class="karmic_flow_next_controller" href="#container">Next</a>
+
+<a class="karmic_flow_prev_controller" href="#" target="container">Prev</a>
+<a class="karmic_flow_next_controller" href="#" target="container">Next</a>
 
 <div id="container" class="karmic_flow_container">
     <ul class="karmic_flow_slider">
-        <li class="karmic_flow_slides" name="slide1">a</li>
+        <li class="karmic_flow_slides karmic_flow_slide_selected" name="slide1">a<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+b<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+v</li>
         <li class="karmic_flow_slides" name="slide2">b</li>
         <li class="karmic_flow_slides" name="slide3">c</li>
         <li class="karmic_flow_slides" name="slide4">d</li>
@@ -35,12 +67,16 @@ $(function(){
 </div>
 <br />
 <br />
-<a class="karmic_flow_prev_controller" href="#container2">Prev</a>
-<a class="karmic_flow_next_controller" href="#container2">Next</a>
+<a class="karmic_flow_controller karmic_flow_controller_selected" href="#slide6" target="container2">Good times 6</a>
+<a class="karmic_flow_controller" href="#slide7" target="container2">Good times 7</a>
+<a class="karmic_flow_controller" href="#slide8" target="container2">Good times 8</a>
+<a class="karmic_flow_controller" href="#slide9" target="container2">Good times 9</a>
+<a class="karmic_flow_prev_controller" href="#" target="container2">Prev</a>
+<a class="karmic_flow_next_controller" href="#" target="container2">Next</a>
 
 <div id="container2" class="karmic_flow_container">
     <ul class="karmic_flow_slider">
-        <li class="karmic_flow_slides" name="slide6">a</li>
+        <li class="karmic_flow_slides karmic_flow_slide_selected" name="slide6">a</li>
         <li class="karmic_flow_slides" name="slide7">b</li>
         <li class="karmic_flow_slides" name="slide8">c</li>
         <li class="karmic_flow_slides" name="slide9">d</li>

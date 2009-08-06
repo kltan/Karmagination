@@ -21,7 +21,11 @@ Karma.fn.extend({
 				// lesson learnt: feature test W3C standard before proprietary standard 
 				if(Karma.support.opacity) this[i].style.opacity = value;
 				// if we have full opacity, better to remove it to restore the antialiasing ability of IE
-				else if(Karma.support.filter) this[i].style.filter = (parseInt(value, 10) == 1) ? '' : 'alpha(opacity=' + (value * 100) + ')';
+				else if(Karma.support.filter) {
+					// OMFG, MS needs hasLayout for opacity, or it will just work on body
+					this[i].style.zoom = 1;
+					this[i].style.filter = (parseInt(value, 10) == 1) ? '' : 'alpha(opacity=' + (value * 100) + ')';
+				}
 			}
 			
 			return this;
@@ -42,11 +46,10 @@ Karma.fn.extend({
 		if (property == 'float')
 			property = Karma.support.styleFloat ? 'styleFloat' : 'cssFloat';
 		
-		// convert integers to strings;
-		if (value * 1) value += 'px';
+		// concat integers/integer-like strings with px;
+		if (Karma.isNumber(+value)) value += 'px';
 		
-		// if(Karma.isString(value)) // just to be safe
-		// I think there's no need cause browser can recover from error
+		if(Karma.isString(value)) // just to be safe
 		for (var i=0; i < this.length; i++)
 			this[i].style[property] = value;
 		
@@ -63,25 +66,33 @@ Karma.fn.extend({
 			property = Karma.support.styleFloat ? 'styleFloat' : 'cssFloat';
 		
 		else if (property == 'opacity' && this[0].filters) {
-			try { var opacity = this[0].filters('alpha').opacity; }	catch(e){ return 1; }
+			try { 
+				var opacity = this[0].filters('alpha').opacity;
+			}
+			catch(e){ 
+				return 1; 
+			}
 			return opacity/100;
 		}
 		
+		// check if the current node is stylable or not, window cannot be styled
 		if(this[0].style) {
-			if (this[0].currentStyle)
+			if (this[0].currentStyle) {
+				if (this[0].currentStyle[property] == 'auto' && this[0].style[property] == '' && /^\w*(left|top|right|bottom)\w*$/i.test(property)) return 0;
 				return this[0].currentStyle[property] ? this[0].currentStyle[property] : this[0].style[property];
-			
-			var computed = document.defaultView.getComputedStyle(this[0], null)[property];
-			
-			if (!computed || !computed.length) computed = this[0].style[property];
-						
-			if (property.toLowerCase().indexOf('color') >= 0) {
-				var color = computed.match(/rgba?\([\d\s,]+\)/);
-				if (color)
-					computed = Karma.rgbToHex(color[0].match(/\d{1,3}/g));
 			}
-			
-			return computed;
+			else if ( "getComputedStyle" in document.defaultView ) {
+				var computed = document.defaultView.getComputedStyle(this[0], null)[property];
+				
+				if (!computed || !computed.length) computed = this[0].style[property];
+							
+				if (property.toLowerCase().indexOf('color') >= 0) {
+					var color = computed.match(/rgba?\([\d\s,]+\)/);
+					if (color)
+						computed = Karma.rgbToHex(color[0].match(/\d{1,3}/g));
+				}
+				return computed;
+			}
 		}
 		return '';
 	},
@@ -105,13 +116,37 @@ Karma.fn.extend({
 	},
 	
 	width: function(val){
-		return Karma.isValue(val) ? this.setStyle('width', val) : this.dimension('Width');
+		var paddingLeft = parseInt(this.getStyle('paddingLeft'), 10) || 0,
+			paddingRight = parseInt(this.getStyle('paddingRight'), 10) || 0;
+		return Karma.isValue(val) ? this.setStyle('width', val) : this.dimension('Width') - paddingLeft - paddingRight;
 	},
 	
 	height: function(val){
-		return Karma.isValue(val) ? this.setStyle('height', val) : this.dimension('Height');
+		var paddingTop = parseInt(this.getStyle('paddingTop'), 10) || 0,
+			paddingBottom  = parseInt(this.getStyle('paddingBottom'), 10) || 0;
+		return Karma.isValue(val) ? this.setStyle('height', val) : this.dimension('Height') - paddingTop - paddingBottom;
 	},
 	
+	innerWidth: function(){
+		return this.dimension('Width');
+	},
+	
+	innerHeight: function(val){
+		return this.dimension('Height');
+	},
+	
+	outerWidth: function(val, margin){
+		var marginLeft = margin ? parseInt(this.css('marginLeft'), 10) || 0 : 0,
+			marginRight = margin ? parseInt(this.css('marginRight'), 10) || 0 : 0;
+		return this.dimension('Width', 1) + marginLeft + marginRight;
+	},
+	
+	outerHeight: function(val, margin){
+		var marginTop = margin ? parseInt(this.css('marginTop'), 10) || 0 : 0,
+			marginBottom = margin ? parseInt(this.css('marginBottom'), 10) || 0 : 0;
+		return this.dimension('Height', 1) + marginTop + marginBottom;
+	},
+
 	offset: function() {
 		if (!this[0]) return null;
 		// w3c
@@ -131,8 +166,8 @@ Karma.fn.extend({
 				docElem = doc.documentElement,
 				clientTop = docElem.clientTop || body.clientTop || 0, 
 				clientLeft = docElem.clientLeft || body.clientLeft || 0,
-				top  = box.top  + (self.pageYOffset || /* boxModel &&*/ docElem.scrollTop || body.scrollTop ) - clientTop,
-				left = box.left + (self.pageXOffset || /* boxModel &&*/ docElem.scrollTop || body.scrollLeft) - clientLeft;
+				top  = box.top  + (self.pageYOffset || Karma.support.boxModel && docElem.scrollTop || body.scrollTop) - clientTop,
+				left = box.left + (self.pageXOffset || Karma.support.boxModel && docElem.scrollTop || body.scrollLeft) - clientLeft;
 			
 			return { top: top, left: left };
 		}

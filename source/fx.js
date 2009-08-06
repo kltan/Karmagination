@@ -3,8 +3,8 @@ Karma.fn.extend({
 		return this.data('KarmaFX', null);
 	},
 	
-	// YES! I found a way to parse out CSS text (reducing the reflow) and also make camelCasing and hyphenated-form coexists without heavy processing
-	// by using caching mechenism so I don't have to do it every time. Will implement this concept on version 0.2
+	// do not calculate and store upfront, calculate on animating iteration hit
+	// reason, css props can change in the middle
 	animate: function(attributes, duration, callback, easing, step){
 		if (!Karma.isObject(attributes) || !this.length) return this;
 		
@@ -40,12 +40,12 @@ Karma.fn.extend({
 				// get the current unanimated attribute
 				FX.start[prop] = $curEl.getStyle(prop);
 				
-				var temp_prop = attributes[prop]* 1;
+				var cur_prop = +attributes[prop];
 				// get start properties and convert to integer or float
 				// set the final attribute if they are in numbers, no calculation
-				if (Karma.isNumber(temp_prop)) {
-					FX.start[prop] = FX.start[prop] * 1 || parseInt(FX.start[prop], 10);
-					FX.end[prop] = temp_prop;
+				if (Karma.isNumber(cur_prop)) {
+					FX.start[prop] =  +FX.start[prop] || parseInt(FX.start[prop], 10);
+					FX.end[prop] = cur_prop;
 				}
 				
 				// else we have to detemine the end attributes, ie 1.6 em = how many px
@@ -53,15 +53,15 @@ Karma.fn.extend({
 					// these are strings
 					var val = Karma.trim(attributes[prop]);
 					// process the start value
-					FX.start[prop] = FX.start[prop] * 1 || parseFloat(FX.start[prop]);
+					FX.start[prop] = +FX.start[prop] || parseFloat(FX.start[prop]);
 					
 					// need to add or substract determined from original value
 					if (val.indexOf('+=') == 0 || val.indexOf('-=') == 0) {
 					
 						var cur_val = val.substr(2),
-							temp_val = cur_val * 1;
+							temp_val = +cur_val;
 						
-						// number looks like strings, means all digits /\d/
+						// number looks like strings, means all digits /\d/ or has a unit of pixel
 						if (temp_val || val.indexOf('px') > 0)
 							cur_val = temp_val || parseInt(cur_val, 10);
 						
@@ -80,6 +80,7 @@ Karma.fn.extend({
 					}
 					
 					// all other units like em, pt
+					// using parseInt cause returned value by browser is px
 					else {
 						FX.end[prop] = parseInt($curEl.setStyle(prop, val).getStyle(prop), 10);
 						$curEl.setStyle(prop, FX.start[prop]); // revert to start value
@@ -116,7 +117,7 @@ Karma.temp.animate = function($curEl) {
 			else 
 				completeAnimation();
 
-		}, 17); // try to run every 17ms
+		}, 13); // try to run every 13ms
 		
 		var currentFrame = function(elapsed, attr){
 			for (var prop in attr) {
@@ -155,8 +156,9 @@ Karma.temp.animate = function($curEl) {
 					
 				if (KarmaFX && KarmaFX[iter]) {
 					for (var prop in KarmaFX[iter].end) {
-						// we assume if it has not been animated, the value stay the same
-						KarmaFX[iter].start[prop] = KarmaFX[iter-1].end[prop] * 1 || KarmaFX[iter].start[prop];
+						var cur_val = $curEl.getStyle(prop);
+						// we assume if it has not been animated, the value stays the same
+						KarmaFX[iter].start[prop] = +cur_val || parseFloat(cur_val);
 					}
 				}
 				
@@ -174,7 +176,7 @@ Karma.temp.animate = function($curEl) {
 					else { 
 						completeAnimation();
 					}
-				}, 17); // try to run every 17ms
+				}, 13); // try to run every 13ms
 			}
 		}
 	}

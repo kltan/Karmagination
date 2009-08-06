@@ -32,7 +32,15 @@ Karma.extend({
 		/* Thanks to Steven Levithan's benchmark on string trimming */
 		// unicode friendly string trim for older browsers that don't catch all whitespaces
 		// string.trim() is in JS 1.8.1, supported by FF 3.5
-		return str.trim ? str.trim() : str.replace(/^[\s\xA0]+/, '').replace(/[\s\xA0]+$/, ''); 
+		// Using Luca Guidi's string trim for non native trim method
+		if(str.trim)
+		   return str.trim();
+		
+		var ws = /\s/, _start = 0, end = str.length;
+		while(ws.test(str.charAt(_start++)));
+		while(ws.test(str.charAt(--end)));
+		return str.slice(_start - 1, end + 1);
+		// : str.replace(/^[\s\xA0]+/, '').replace(/[\s\xA0]+$/, ''); 
 	},
 			 
 	grep: function(o, fn) {

@@ -22,7 +22,7 @@ Karma.fn.extend({
 		}
 		
 		// getting property of first element
-		return this.length? this[0].getAttribute(val): null;
+		return this.length? this[0].getAttribute(prop): null;
 	},
 	
 	removeAttr: function(prop) {

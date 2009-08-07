@@ -62,8 +62,6 @@ else { ?><script src="jquery-1.3.2.js" type="text/javascript"></script><? } ?>
 <script language="javascript">
 
 $(function(){
-	
-		
 	$('a').animate({ 
 		opacity: 0,
 		marginLeft: 550
@@ -92,7 +90,7 @@ $(function(){
 	$('div').animate({
 		width: '500px'
 	});
-	
+	/*
 	if(window.console && console.profile)
 		console.profile('Animation');	
 	
@@ -107,7 +105,7 @@ $(function(){
 	
 	if(window.console && console.profile)
 		console.profileEnd('Animation');
-	
+	*/
 });
 </script>
 <div id="tryHeight">a</div>

@@ -18,7 +18,7 @@ Karma.fn.extend({
 	
 		};
 		
-		elements = (Karma.isString(query)) ? Karma.filter(query, Karma.unique(elements)) : Karma.unique(elements);
+		elements = (Karma.isString(query)) ? Karma.selector.filter(query, Karma.unique(elements)) : Karma.unique(elements);
 		return Karma(elements).stack(this);
 	},
 
@@ -52,7 +52,7 @@ Karma.fn.extend({
 			}
 		}
 		
-		siblings = (Karma.isString(query)) ? Karma.filter(query, Karma.unique(siblings)) : Karma.unique(siblings);
+		siblings = (Karma.isString(query)) ? Karma.selector.filter(query, Karma.unique(siblings)) : Karma.unique(siblings);
 		
 		return Karma(siblings).stack(this);
 	},
@@ -66,7 +66,7 @@ Karma.fn.extend({
 				parent.push($[i].parentNode);
 		}
 	
-		parent = (Karma.isString(query)) ? Karma.filter(query, Karma.unique(parent)) : Karma.unique(parent);
+		parent = (Karma.isString(query)) ? Karma.selector.filter(query, Karma.unique(parent)) : Karma.unique(parent);
 			
 		return Karma(parent).stack(this);
 	},
@@ -82,7 +82,7 @@ Karma.fn.extend({
 				parent = parent.parentNode || document;
 			}
 		}
-		ancestors = (Karma.isString(query)) ? Karma.filter(query, Karma.unique(ancestors)) : Karma.unique(ancestorss);
+		ancestors = (Karma.isString(query)) ? Karma.selector.filter(query, Karma.unique(ancestors)) : Karma.unique(ancestorss);
 
 		return Karma(ancestors).stack(this);
 	},
@@ -98,7 +98,7 @@ Karma.fn.extend({
 		}
 		
 		if (Karma.isString(query))
-			children = Karma.filter(query, children);
+			children = Karma.selector.filter(query, children);
 		
 		return Karma(children).stack(this);
 		
@@ -133,11 +133,11 @@ Karma.fn.extend({
 	},
 	
 	filter: function(query) {
-		return query ? Karma(Karma.filter(query, this)).stack(this) : this;
+		return query ? Karma(Karma.selector.filter(query, this)).stack(this) : this;
 	},
 	
 	is: function(query) {
-		return query ? !!Karma.filter(query, this).length : false;
+		return query ? !!Karma.selector.filter(query, this).length : false;
 	},
 	
 	not: function(query) {

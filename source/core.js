@@ -49,7 +49,13 @@ var Karma = this.$ = this.Karma = function( query, context ) {
 	}
 	
 	// string is most used query
-	else if(typeof query == "string" && query.length > 0) {
+	else if(typeof query == "string") {
+		if(!query.length) {
+			this[0] = document;
+			this.length = 1;
+			this.query = query;
+			return; // do not return 'this' because it's a constructor, return just to break from function
+		}
 		query = Karma.trim(query);
 		this.query = query;
 		if (context.document) context = context.document;
@@ -254,7 +260,7 @@ Karma.extend({
 	isDefined: function(o) { return typeof o != "undefined" },
 	
 	// unreliable detection, using documentation to prevent mistake instead
-	isHTML: function(o) { return /^<.+/.test(o.substring(0,3)) },
+	isHTML: function(o) { return o.substring ? /^<.+/.test(o.substring(0,3)) : false; },
 	isKarma: function(o) { return !!o.isKarma },
 
 	
@@ -271,7 +277,7 @@ Karma.extend({
 	isWebkit: !!(!window.opera && !navigator.taintEnable && document.evaluate && typeof document.getBoxObjectFor == "undefined"),
 	
 	// trim front/ending whitespaces and newlines so innerHTML won't go crazy
-	cleanHTML: function(HTML){ return HTML.replace(/[\n\r]/g, ' '); },
+	cleanHTML: function(HTML){ return HTML.replace ? HTML.replace(/[\n\r]/g, ' ') : HTML; },
 	
 	// used internally, only works for array-like objects
 	makeArray: function(o) {

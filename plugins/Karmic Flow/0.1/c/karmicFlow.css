@@ -1,10 +1,22 @@
+body {
+	background: #000;
+	font-family:Arial, Helvetica, sans-serif;
+	font-size: 12px;
+}
+
+h1, p {
+	color: #FFF;
+	padding: 4px;
+}
+
 div.karmic_flow_container {
 	overflow: hidden; 
 	position: relative;
 	
 	/* optional */
-	width: 500px; 
+	width: 600px; 
 	height: 200px;
+	border:3px solid #FFF;
 }
 
 ul.karmic_flow_slider, ul.karmic_flow_slider li {
@@ -16,23 +28,38 @@ ul.karmic_flow_slider, ul.karmic_flow_slider li {
 ul.karmic_flow_slider {
 	overflow: hidden; 
 	position: relative;
+	
 	/* optional */
 	margin-left: 0;
 }
 
 ul.karmic_flow_slider li {
 	float: left;
-}
-
-.karmic_flow_controller_selected {
-	background:#F00;
-	color:#FFF;
+	position: relative;
+	overflow:hidden;
 }
 
 .karmic_flow_slide_overflow {
+	/* optional */
 	overflow:auto;
 }
 
 .karmic_flow_sliding .karmic_flow_slide_overflow {
 	overflow:hidden;
+}
+
+.karmic_flow_controller_selected {
+	/* optional */
+	background: #FFF !important;
+	color: #663300 !important;
+	padding: 7px 10px !important;
+}
+
+.karmic_flow_controller {
+	/* optional */
+	background: #333;
+	color: #3399CC;
+	padding: 5px 10px;
+	line-height: 25px;
+	text-decoration: none;
 }

@@ -21,11 +21,12 @@
 		prev: 'karmic_flow_prev_controller',
 		play: 'karmic_flow_play_controller',
 		pause: 'karmic_flow_pause_controller',
-		timer: 500,
+		duration: 500,
+		timer: 2500,
 		auto: false
 	}, opts);
 	
-	var interval;
+	var interval = null;
 	
 	var playSlide = function(el, auto){
 		var $el = $(el),
@@ -47,7 +48,7 @@
 		$allSlides.removeClass(opts.slide_selected);
 		$allSlides.eq(index).addClass(opts.slide_selected);
 		
-		var $controller_target = $('[href*=#'+ $allSlides.eq(index).attr('name') + ']'),
+		var $controller_target = $('[href=#'+ $allSlides.eq(index).attr('name') + ']'),
 			$controller_siblings = $('[target=' + $controller_target.attr('target') + ']');
 		
 		$controller_siblings.removeClass(opts.controller_selected);
@@ -57,9 +58,11 @@
 			
 		$slider.stop().animate({
 			marginLeft: -1 * $current_selected.width() * index
-		}, 300, function(){
+		}, opts.duration, function(){
 			$slider.removeClass(opts.sliding);	
-		});		
+		});
+		
+		return $controller_target[0];
 	}
 	
 	for(var i=0; i < this.length; i++) {
@@ -102,7 +105,7 @@
 
 				$slider.stop().animate({
 					marginLeft: -1 * $found_slide.width() * index
-				}, 300, function(){
+				}, opts.duration, function(){
 					$slider.removeClass(opts.sliding);	
 				});
 				return false;
@@ -115,18 +118,23 @@
 			
 			// play button
 			else if ($el.hasClass(opts.play)) {
-				interval = setInterval(function(){
-					playSlide(el, true);
-				}, opts.timer);
+				var curEl = el;
+				
+				if(interval !== null) {
+					clearInterval(interval);
+					interval = null;
+					$el.removeClass(opts.pause)
+				}
+				else {
+					$el.addClass(opts.pause);
+					interval = setInterval(function(){
+						curEl =playSlide(curEl, true);
+					}, opts.timer);
+				}
 				return false;
 			}
-			// pause button
-			else if ($el.hasClass(opts.pause)) {
-				clearInterval(interval);
-				return false;
-			}
-			
-			// other normal anchors should not be affected and behave normally
+
+			// other normal anchors should not be affected and behave normally so no return false here
 		});
 	}
 	
@@ -137,8 +145,27 @@
 		
 		$slider.width($slides.length * $container.width());
 		$slides.width($container.width());
+
+		if (opts.auto) {
+			// find the play button for current container
+			var $play_button = $('.'+opts.play).filter('[target=' + this[i].id + ']')
+			
+			// if not found, create one and hide it
+			if(!$play_button.length)
+				$play_button = $('<a href="#" target="' + this[i].id + '" style="display:none" class="' + opts.next + '">&nbsp;</a>').appendTo(document.body);
+			
+			var curEl = $play_button[0];
+			
+			// loop the slides
+			interval = setInterval(function(){
+				curEl =playSlide(curEl, true);
+			}, opts.timer);
+		}
 	}
-	
+	// trigger click does not work well with event delegation in m$hit
+	/*if(document.location.hash.length)
+		$('[href=' + document.location.hash + ']').trigger('click');*/
+
 	// make this plugin chainable
 	return this; 
 

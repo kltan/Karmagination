@@ -104,7 +104,7 @@ Karma.fn.extend({
 	},
 	
 	remove: function(query){
-		var result = Karma.isString(query) ? Karma.filter(query, this) : this.length ? this : [];
+		var result = Karma.isString(query) ? Karma.selector.filter(query, this) : this.length ? this : [];
 		
 		for (var i=0; i< result.length; i++)
 			result[i].parentNode.removeChild(result[i]);

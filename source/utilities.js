@@ -24,7 +24,7 @@ Karma.extend({
 	
 	each: function(o, fn){
 		for (var i = 0; i < o.length; i++) {
-			fn(i, o[i]);
+			fn.call(o[i], i);
 		}
 	},
 	
@@ -36,18 +36,20 @@ Karma.extend({
 		if(str.trim)
 		   return str.trim();
 		
+		if(!str.replace)
+			return str;
+		
 		var ws = /\s/, _start = 0, end = str.length;
 		while(ws.test(str.charAt(_start++)));
 		while(ws.test(str.charAt(--end)));
 		return str.slice(_start - 1, end + 1);
-		// : str.replace(/^[\s\xA0]+/, '').replace(/[\s\xA0]+$/, ''); 
 	},
 			 
 	grep: function(o, fn) {
 		var ret = [];
 		// Go through the array, only saving the items that pass the validator function
 		for (var i = 0; i < o.length; i++)
-			if (fn(o[i], i) !== false)
+			if (fn.call(o[i], i) !== false)
 				ret.push( o[i] );
 
 		return ret;
@@ -63,7 +65,7 @@ Karma.extend({
 	map: function(o, fn) {
 		var array = [];
 		for ( var i = 0; i < o.length; i++ ) 
-			array.push(fn(o[i], i));
+			array.push(fn.call(o[i], i));
 
 		return array;
 	},

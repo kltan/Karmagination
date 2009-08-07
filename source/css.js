@@ -47,7 +47,7 @@ Karma.fn.extend({
 			property = Karma.support.styleFloat ? 'styleFloat' : 'cssFloat';
 		
 		// concat integers/integer-like strings with px;
-		if (Karma.isNumber(+value)) value += 'px';
+		if (parseInt(value, 10)) value += 'px';
 		
 		if(Karma.isString(value)) // just to be safe
 		for (var i=0; i < this.length; i++)
@@ -78,7 +78,11 @@ Karma.fn.extend({
 		// check if the current node is stylable or not, window cannot be styled
 		if(this[0].style) {
 			if (this[0].currentStyle) {
-				if (this[0].currentStyle[property] == 'auto' && this[0].style[property] == '' && /^\w*(left|top|right|bottom)\w*$/i.test(property)) return 0;
+				if (this[0].currentStyle[property] == 'auto' && this[0].style[property] == '') {
+					if(/width|height/i.test(property)) return this.width();
+					if(/left|top|right|bottom/i.test(property)) return 0;
+				}
+
 				return this[0].currentStyle[property] ? this[0].currentStyle[property] : this[0].style[property];
 			}
 			else if ( "getComputedStyle" in document.defaultView ) {
@@ -116,8 +120,8 @@ Karma.fn.extend({
 	},
 	
 	width: function(val){
-		var paddingLeft = parseInt(this.getStyle('paddingLeft'), 10) || 0,
-			paddingRight = parseInt(this.getStyle('paddingRight'), 10) || 0;
+		var paddingLeft = parseInt(this.getStyle('paddingLeft'), 10),
+			paddingRight = parseInt(this.getStyle('paddingRight'), 10);
 		return Karma.isValue(val) ? this.setStyle('width', val) : this.dimension('Width') - paddingLeft - paddingRight;
 	},
 	

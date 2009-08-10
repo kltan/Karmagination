@@ -36,10 +36,10 @@ Karma.extend({
 		if(str.trim)
 		   return str.trim();
 		
-		if(!str.replace)
+		if(!str.charAt)
 			return str;
 		
-		var ws = /\s/, _start = 0, end = str.length;
+		var ws = /[\s\xA0]/, _start = 0, end = str.length;
 		while(ws.test(str.charAt(_start++)));
 		while(ws.test(str.charAt(--end)));
 		return str.slice(_start - 1, end + 1);

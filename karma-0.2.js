@@ -4,8 +4,8 @@
  * Released under the MIT, BSD, and GPL Licenses - Choose one that fit your needs
  * Copyright (c) 2009 Kean L. Tan 
  * Start date: 2009-04-01
- * Build Time: 2009-08-07 08:12:59 AM
- * Build: 1829
+ * Build Time: 2009-08-10 08:15:17 PM
+ * Build: 1898
  *
  * Attribution:
  * onDOMready based on many JS experts' input especially Dean Edwards, see the unminified source code for names
@@ -32,7 +32,7 @@ var Karma = this.$ = this.Karma = function( query, context ) {
 	if (!(this instanceof Karma)) return new Karma( query, context );
 	
 	query = query || document;
-	this.context = context = context || window;
+	this.context = context = context || document;
 	
 	// the stack to track callee Karma objects
 	this.KarmaStack = [];
@@ -56,11 +56,13 @@ var Karma = this.$ = this.Karma = function( query, context ) {
 			this.query = query;
 			return; // do not return 'this' because it's a constructor, return just to break from function
 		}
+		var _oquery = query;
 		query = Karma.trim(query);
 		this.query = query;
-		if (context.document) context = context.document;
+		context = context.ownerDocument || context;
+		
 		// if HTML string passed
-		result = Karma.isHTML(query) ?	Karma.HTMLtoNode(query, context) : Karma.selector(query, context);
+		result = Karma.isHTML(query) ? Karma.HTMLtoNode(query, context) : Karma.selector(query, context);
 	}
 	
 	// onDOMready
@@ -187,7 +189,8 @@ Karma.extend({
 	/* special thanks to jQuery's cases so I don't have to manually hunt down the special cases myself */	 
 	HTMLtoNode: function(query, context) {
 		context = context || document;
-		query = Karma.cleanHTML(query);
+		var query = Karma.cleanHTML(query);
+		
 		var tmp = (context === window) ? Karma.temp.div.cloneNode(false) : context.createElement('DIV'), 
 			subquery = query.substring(0, 8).toLowerCase();
 
@@ -260,7 +263,7 @@ Karma.extend({
 	
 	// unreliable detection, using documentation to prevent mistake instead
 	isHTML: function(o) { return o.substring ? /^<.+/.test(o.substring(0,3)) : false; },
-	isKarma: function(o) { return !!o.isKarma },
+	isKarma: function(o) { return o instanceof Karma },
 
 	
 	// browser detection, TAKEN FROM MOOTOOLS with modifications, if you are new to JS, !! mean cast as boolean type
@@ -438,6 +441,7 @@ Karma.temp = {
 
 Karma.uniqueId = 0;
 Karma.storage = {};
+Karma.lastquery = {};
 
 // know the current browser's capabilities, we calculate here and use everywhere without recalculating
 // why isDefined is reliable here, REASON: we just created the ELEMENT and can be sure they are not polluted
@@ -925,19 +929,14 @@ Karma.fn.extend({
 	
 	data: function(key, value) {
 		// key can be number or string
-		// value can be anything except for undefined
+		// value can be anything even function except for undefined
 		if(Karma.isDefined(value)) {
-			for (var i=0; i< this.length; i++) {
-				this[i].KarmaMap = this[i].KarmaMap || ++Karma.uniqueId;
-				var map = this[i].KarmaMap;
-				Karma.storage[map] = Karma.storage[map] || {};
-				Karma.storage[map].KarmaData = Karma.storage[map].KarmaData || {};
-				Karma.storage[map].KarmaData[key] = value;
-			}
+			for (var i=0; i< this.length; i++)
+				Karma.data(this[i], key, value);
 			return this;
 		}
 	
-		return Karma.storage && Karma.storage[this[0].KarmaMap] && Karma.storage[this[0].KarmaMap].KarmaData && Karma.storage[this[0].KarmaMap].KarmaData[key] ? Karma.storage[this[0].KarmaMap].KarmaData[key] : null;
+		return this[0] ? Karma.data(this[0], key) : null;
 	},
 	
 	removeData: function(key) {
@@ -1004,7 +1003,23 @@ Karma.fn.extend({
 
 });
 
-
+Karma.extend({
+	data: function(el, key, value) {
+		// key can be number or string
+		// value can be anything except for undefined
+		if(Karma.isDefined(value)) {
+			var map = 0;
+			if (el !== window) 
+				map = el.KarmaMap = el.KarmaMap || ++Karma.uniqueId;
+				
+			Karma.storage[map] = Karma.storage[map] || {};
+			Karma.storage[map].KarmaData = Karma.storage[map].KarmaData || {};
+			Karma.storage[map].KarmaData[key] = value;
+		}
+	
+		return Karma.storage && Karma.storage[el.KarmaMap] && Karma.storage[el.KarmaMap].KarmaData && Karma.storage[el.KarmaMap].KarmaData[key] ? Karma.storage[el.KarmaMap].KarmaData[key] : null;
+	}
+});
 Karma.extend({
 
 	ajax: function(o) {
@@ -1093,7 +1108,7 @@ Karma.include = Karma.getScript;
 
 Karma.fn.extend({
 
-	bind: function(str, fn) {
+	bind: function(str, fn, isLive) {
 		if (!this.length || !Karma.isString(str) || !Karma.isFunction(fn)) return this;
 		
 		str = str.split(/\s+/);
@@ -1112,19 +1127,20 @@ Karma.fn.extend({
 		
 		var isEventSupported = function(eventName) {
 			var el = TAGNAMES[eventName] ? document.createElement(TAGNAMES[eventName]) : Karma.temp.div;
+			var test = el;
 			
 			if (TAGNAMES[eventName] == 'window')
-				el = window;
+				test = window;
 			
 			var onEventName = 'on' + eventName,
-				isSupported = !!(onEventName in el);
+				isSupported = !!(onEventName in test);
 			
 			if (!isSupported) {
-				if (el === window)
-					el = Karma.temp.div;
+				if (test === window)
+					test = el;
 
-				el.setAttribute(onEventName, 'return;');
-				isSupported = !!(typeof el[onEventName] == 'function');
+				test.setAttribute(onEventName, 'return;');
+				isSupported = typeof test[onEventName] == 'function';
 			}
 			
 			el = null;
@@ -1137,30 +1153,43 @@ Karma.fn.extend({
 			var ns = str[j].split('.');
 			for(var i=0; i< this.length; i++) {
 				if (!(this[i].nodeType == 3 || this[i].nodeType == 8)) {
-					this[i].KarmaMap = this[i].KarmaMap || ++Karma.uniqueId;
-					Karma.storage[this[i].KarmaMap] = Karma.storage[this[i].KarmaMap] || {};
+					var map = 0;
+					if (this[i] !== window)
+						map = this[i].KarmaMap = this[i].KarmaMap || ++Karma.uniqueId;
+						
+					Karma.storage[map] = Karma.storage[map] || {};
 					
-					var $ = Karma.storage[this[i].KarmaMap].KarmaEvent = Karma.storage[this[i].KarmaMap].KarmaEvent || {};
+					var $ = Karma.storage[map].KarmaEvent = Karma.storage[map].KarmaEvent || {};
 					
 					$[ns[0]] = $[ns[0]] || [];
-
-					if (ns.length == 1)
+					
+					if(isLive) {}
+					
+					else if (ns.length == 1)
 						$[ns[0]].push(fn);
 	
 					else if (ns.length == 2)
 						$[ns[0]][ns[1]] = fn;
 						
 					if(Karma.event.support[ns[0]] || (Karma.event.support[ns[0]] !== false && isEventSupported(ns[0]))) {
-						this[i]['on'+ns[0]] = Karma.event.caller;
+						if(this[i]['on'+ns[0]] !== Karma.event.caller)
+							this[i]['on'+ns[0]] = Karma.event.caller;
 					}
 					// custom event
 					else if(document.addEventListener) {
-						this[i].addEventListener(ns[0], Karma.event.caller, false);
+						var total = 0;
+						for(var event in $[ns[0]]) {
+							total++;
+						}
+	
+						if(!total)
+							this[i].addEventListener(ns[0], Karma.event.caller, false);
 					}
 					// custom/proprietary event for M$
 					else {
 						this[i].customEvents = 0;
-						this[i].onpropertychange = Karma.event.caller;
+						if(!Karma.isFunction(this[i].onpropertychange))
+							this[i].onpropertychange = Karma.event.caller;
 					}
 				}
 			}
@@ -1257,33 +1286,32 @@ Karma.fn.extend({
 		} catch(e){};
 		
 		return this;
-	}/*,
+	},
 	
 	// preventDefault and stopPropagation is not complete for live yet
 	// need help on this, if you want to help just ping @karmagination at twitter
 	live: function(str, fn){
-		var query = this.query;
-		var context = this.context.document || this.context;
+		var context = this.context.document || this.context || document;
+		for(var i = 0; i < this.length; i++) {
+			var data = Karma.data(this.context, 'KarmaLive') || {};
+			data[str] = data[str] || {};
+			data[str][this.query] = fn;
+			Karma.data(this.context, 'KarmaLive', data);
+		}
+		Karma(this.context).bind(str, function(){}, 1);
 
-		return Karma(context).on(str, function(e, el){
-			
-			var ancestors = [], cur = e.target;
-			while(cur !== document) {
-				ancestors.push(cur);
-				cur = cur.parentNode;
-			}
-			
-			var $ancestors = Karma(ancestors).filter(query);
-
-			if($ancestors.length > 0)
-				return fn(e, el);
-		});	
+		return this;
 	},
 	
-	die: function(str, fn){
-		var context = this.context.document || this.context;
-		return Karma().un(str, fn);
-	}*/
+	die: function(str, fn) {
+		for(var i = 0; i < this.length; i++) {
+			var data = Karma.data(this.context, 'KarmaLive');
+			if (data && data[str])
+				data[str] = null;
+		}
+		return this;
+	}
+
 });
 
 // create events for w3c browser
@@ -1486,6 +1514,44 @@ Karma.event.caller = function(e) {
 	// Note: button is not normalized, so don't use it
 	if ( !e.which && e.button )
 		e.which = (e.button & 1 ? 1 : ( e.button & 2 ? 3 : ( e.button & 4 ? 2 : 0 ) ));
+	
+	var live = Karma.data(this.ownerDocument || document, 'KarmaLive');
+	if (live && live[e.type]) {
+		var passed = [],
+			node = [],
+			ancestors = [],
+			cur = e.target;
+		
+		// get a list of ancestors e.target including e.target
+		while(cur) {
+			ancestors.push(cur);
+			cur = cur.parentNode;
+		}
+
+		// see which live query is more specific to the e.target
+		for(var query in live[e.type]) {
+			var result = Sizzle.filter(query, ancestors);
+			if (result.length) {
+				for(var i = 0; i < ancestors.length; i++) {
+					if (ancestors[i] === result[0]) {
+						passed[i] = query;
+						node[i] = result[0];
+					}
+				}
+			}
+		}
+		
+		// stop event done right, WOOT
+		for(var i=0; i < passed.length; i++) {
+			if (passed[i] && live[e.type][passed[i]])
+				if(live[e.type][passed[i]].call(node[i], e) === false) {
+					e.stopPropagation();
+					e.preventDefault(); 
+					break;
+				}
+		}
+	}
+
 
 		
 	if(e.propertyName == "customEvents") {
@@ -2051,7 +2117,7 @@ Karma.extend({
 	
 	each: function(o, fn){
 		for (var i = 0; i < o.length; i++) {
-			fn(i, o[i]);
+			fn.call(o[i], i);
 		}
 	},
 	
@@ -2066,18 +2132,17 @@ Karma.extend({
 		if(!str.replace)
 			return str;
 		
-		var ws = /\s/, _start = 0, end = str.length;
+		var ws = /[\s\xA0]/, _start = 0, end = str.length;
 		while(ws.test(str.charAt(_start++)));
 		while(ws.test(str.charAt(--end)));
 		return str.slice(_start - 1, end + 1);
-		// : str.replace(/^[\s\xA0]+/, '').replace(/[\s\xA0]+$/, ''); 
 	},
 			 
 	grep: function(o, fn) {
 		var ret = [];
 		// Go through the array, only saving the items that pass the validator function
 		for (var i = 0; i < o.length; i++)
-			if (fn(o[i], i) !== false)
+			if (fn.call(o[i], i) !== false)
 				ret.push( o[i] );
 
 		return ret;
@@ -2093,7 +2158,7 @@ Karma.extend({
 	map: function(o, fn) {
 		var array = [];
 		for ( var i = 0; i < o.length; i++ ) 
-			array.push(fn(o[i], i));
+			array.push(fn.call(o[i], i));
 
 		return array;
 	},
@@ -2791,7 +2856,7 @@ for ( var type in Expr.match ) {
 }
 
 var makeArray = function(array, results) {
-	array = Array.prototype.slice.call( array );
+	array = Array.prototype.slice.call( array, 0 );
 
 	if ( results ) {
 		results.push.apply( results, array );
@@ -2804,7 +2869,7 @@ var makeArray = function(array, results) {
 // Perform a simple check to determine if the browser is capable of
 // converting a NodeList to an array using builtin methods.
 try {
-	Array.prototype.slice.call( document.documentElement.childNodes );
+	Array.prototype.slice.call( document.documentElement.childNodes, 0 );
 
 // Provide a fallback method if it does not work
 } catch(e){

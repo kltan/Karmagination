@@ -60,8 +60,10 @@ else {
 <? if (!$jQuery) { ?><script src="<?=$output_file?>" type="text/javascript"></script><? } 
 else { ?><script src="jquery-1.3.2.js" type="text/javascript"></script><? } ?>
 <script language="javascript">
-
 $(function(){
+	if(window.console && console.profile)
+		console.profile('Benchmark');
+
 	$('a').animate({ 
 		opacity: 0,
 		marginLeft: 550
@@ -69,45 +71,27 @@ $(function(){
 	.animate({ 
 		opacity: 1,
 		marginLeft: 50
-	}, 1000)
-	.animate({ 
-		opacity: 0,
-		marginLeft: 450
-	}, 1000)
-	.animate({ 
-		opacity: 1,
-		marginLeft: 10
-	}, 1000)
-	.animate({ 
-		opacity: 0,
-		marginLeft: 450
-	}, 1000)
-	.animate({ 
-		opacity: 1,
-		marginLeft: 20
 	}, 1000);
-	
+
 	$('div').animate({
 		width: '500px'
 	});
-	/*
-	if(window.console && console.profile)
-		console.profile('Animation');	
 	
-	$('a').bind('click', function(){
-		alert('hi');
+	$('a').live('click', function(e){
+		alert(this.innerHTML);
 		return false;
 	});
 	
-	for(var i = 0; i < 5; i++) {
-		$('a').eq(0).clone(true).appendTo('body');
-	}
+	$('input').live('focus', function(e) { 
+		alert('focused');
+	});
 	
 	if(window.console && console.profile)
-		console.profileEnd('Animation');
-	*/
+		console.profileEnd('Benchmark');
 });
+
 </script>
 <div id="tryHeight">a</div>
+<a href="#">te<b>s</b>t</a>
 </body>
 </html>

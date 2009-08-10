@@ -32,7 +32,7 @@ var Karma = this.$ = this.Karma = function( query, context ) {
 	if (!(this instanceof Karma)) return new Karma( query, context );
 	
 	query = query || document;
-	this.context = context = context || window;
+	this.context = context = context || document;
 	
 	// the stack to track callee Karma objects
 	this.KarmaStack = [];
@@ -56,11 +56,13 @@ var Karma = this.$ = this.Karma = function( query, context ) {
 			this.query = query;
 			return; // do not return 'this' because it's a constructor, return just to break from function
 		}
+		var _oquery = query;
 		query = Karma.trim(query);
 		this.query = query;
-		if (context.document) context = context.document;
+		context = context.ownerDocument || context;
+		
 		// if HTML string passed
-		result = Karma.isHTML(query) ?	Karma.HTMLtoNode(query, context) : Karma.selector(query, context);
+		result = Karma.isHTML(query) ? Karma.HTMLtoNode(query, context) : Karma.selector(query, context);
 	}
 	
 	// onDOMready
@@ -188,7 +190,8 @@ Karma.extend({
 	/* special thanks to jQuery's cases so I don't have to manually hunt down the special cases myself */	 
 	HTMLtoNode: function(query, context) {
 		context = context || document;
-		query = Karma.cleanHTML(query);
+		var query = Karma.cleanHTML(query);
+		
 		var tmp = (context === window) ? Karma.temp.div.cloneNode(false) : context.createElement('DIV'), 
 			subquery = query.substring(0, 8).toLowerCase();
 
@@ -261,7 +264,7 @@ Karma.extend({
 	
 	// unreliable detection, using documentation to prevent mistake instead
 	isHTML: function(o) { return o.substring ? /^<.+/.test(o.substring(0,3)) : false; },
-	isKarma: function(o) { return !!o.isKarma },
+	isKarma: function(o) { return o instanceof Karma },
 
 	
 	// browser detection, TAKEN FROM MOOTOOLS with modifications, if you are new to JS, !! mean cast as boolean type
@@ -439,6 +442,7 @@ Karma.temp = {
 
 Karma.uniqueId = 0;
 Karma.storage = {};
+Karma.lastquery = {};
 
 // know the current browser's capabilities, we calculate here and use everywhere without recalculating
 // why isDefined is reliable here, REASON: we just created the ELEMENT and can be sure they are not polluted

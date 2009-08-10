@@ -40,19 +40,14 @@ Karma.fn.extend({
 	
 	data: function(key, value) {
 		// key can be number or string
-		// value can be anything except for undefined
+		// value can be anything even function except for undefined
 		if(Karma.isDefined(value)) {
-			for (var i=0; i< this.length; i++) {
-				this[i].KarmaMap = this[i].KarmaMap || ++Karma.uniqueId;
-				var map = this[i].KarmaMap;
-				Karma.storage[map] = Karma.storage[map] || {};
-				Karma.storage[map].KarmaData = Karma.storage[map].KarmaData || {};
-				Karma.storage[map].KarmaData[key] = value;
-			}
+			for (var i=0; i< this.length; i++)
+				Karma.data(this[i], key, value);
 			return this;
 		}
 	
-		return Karma.storage && Karma.storage[this[0].KarmaMap] && Karma.storage[this[0].KarmaMap].KarmaData && Karma.storage[this[0].KarmaMap].KarmaData[key] ? Karma.storage[this[0].KarmaMap].KarmaData[key] : null;
+		return this[0] ? Karma.data(this[0], key) : null;
 	},
 	
 	removeData: function(key) {
@@ -119,3 +114,20 @@ Karma.fn.extend({
 
 });
 
+Karma.extend({
+	data: function(el, key, value) {
+		// key can be number or string
+		// value can be anything except for undefined
+		if(Karma.isDefined(value)) {
+			var map = 0;
+			if (el !== window) 
+				map = el.KarmaMap = el.KarmaMap || ++Karma.uniqueId;
+				
+			Karma.storage[map] = Karma.storage[map] || {};
+			Karma.storage[map].KarmaData = Karma.storage[map].KarmaData || {};
+			Karma.storage[map].KarmaData[key] = value;
+		}
+	
+		return Karma.storage && Karma.storage[el.KarmaMap] && Karma.storage[el.KarmaMap].KarmaData && Karma.storage[el.KarmaMap].KarmaData[key] ? Karma.storage[el.KarmaMap].KarmaData[key] : null;
+	}
+});

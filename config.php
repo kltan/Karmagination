@@ -16,8 +16,6 @@ fclose($handle);
 
 $source = array(
 	'source/core.js',
-	'source/adding.js',
-	'source/iterator.js',
 	'source/manipulate.js',
 	'source/traverse.js',
 	'source/attribute.js',
@@ -26,10 +24,10 @@ $source = array(
 	'source/event.js',
 	'source/css.js',
 	'source/fx.js',
-//	'source/fx_old.js',
 	'source/utilities.js',
 	'source/class.js',
 	'source/sizzle.js',
+	'source/ready.js',
 	'source/selector.js',
 );
 

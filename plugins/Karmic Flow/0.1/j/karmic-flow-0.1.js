@@ -21,10 +21,10 @@
 		prev: 'karmic_flow_prev_controller',
 		play: 'karmic_flow_play_controller',
 		pause: 'karmic_flow_pause_controller',
-		duration: 500,
+		duration: 400,
 		timer: 2500,
 		auto: false
-	}, opts);
+	}, opts || {});
 	
 	var interval = null;
 	
@@ -64,31 +64,28 @@
 		
 		return $controller_target[0];
 	}
-	
+
 	for(var i=0; i < this.length; i++) {
-		$(this[i]).find('.'+ opts.slides).each(function(j){
+		$(this[i]).find('.'+ opts.slides).each(function(){
 			var $div = $('<div></div>');
-			while(this.childNodes.length)
-				$div[0].appendChild(this.firstChild);
-			
+			$div.append(this.childNodes);
 			$div
 			 .appendTo(this)
 			 .addClass(opts.slide_overflow)
 			 .css('height', $(this).parent().parent().height());
-			 
 		});
 	}
-
+	
 	// first time init, we want delegate all those controllers with different class name so they know their purpose
 	// we do not want to delegate twice
 	var $doc = $();
-	if (!$doc.data('karmic_flow_init_controller')) {
-		$doc.data('karmic_flow_init_controller', 1);
+	if (!$doc.data('karmic_flow_init')) {
+		$doc.data('karmic_flow_init', 1);
 
 		$doc.bind('click', function(e){
 			var el = e.target,
 				$el = $(el),
-				target_container = $(el).attr('target');
+				target_container = $el.attr('target');
 			
 			// slide controller
 			if ($el.hasClass(opts.controller)) {
@@ -100,19 +97,20 @@
 				$el.addClass(opts.controller_selected);
 				$slider.children().removeClass(opts.slide_selected);
 				$found_slide.addClass(opts.slide_selected);
-				
 				$slider.addClass(opts.sliding);
+				
+				var marginLeft = -1 * $found_slide.width() * index;
 
-				$slider.stop().animate({
-					marginLeft: -1 * $found_slide.width() * index
-				}, opts.duration, function(){
+				$slider.stop().animate({ marginLeft: -1 * $found_slide.width() * index }, opts.duration, function(){
 					$slider.removeClass(opts.sliding);	
 				});
+				// prevent default and stop propagation
 				return false;
 			}
 			// next button, flawed, should use current selected or will be off
 			else if ($el.hasClass(opts.next) || $el.hasClass(opts.prev)) {
 				playSlide(el);
+				// prevent default and stop propagation
 				return false;
 			}
 			
@@ -123,7 +121,7 @@
 				if(interval !== null) {
 					clearInterval(interval);
 					interval = null;
-					$el.removeClass(opts.pause)
+					$el.removeClass(opts.pause);
 				}
 				else {
 					$el.addClass(opts.pause);
@@ -131,6 +129,7 @@
 						curEl =playSlide(curEl, true);
 					}, opts.timer);
 				}
+				// prevent default and stop propagation
 				return false;
 			}
 
@@ -150,9 +149,9 @@
 			// find the play button for current container
 			var $play_button = $('.'+opts.play).filter('[target=' + this[i].id + ']')
 			
-			// if not found, create one and hide it
+			// if not found, create one and hide it, we use fake play button to simulate a true button
 			if(!$play_button.length)
-				$play_button = $('<a href="#" target="' + this[i].id + '" style="display:none" class="' + opts.next + '">&nbsp;</a>').appendTo(document.body);
+				$play_button = $('<a href="#" target="' + this[i].id + '" class="' + opts.next + '">&nbsp;</a>');
 			
 			var curEl = $play_button[0];
 			
@@ -162,10 +161,7 @@
 			}, opts.timer);
 		}
 	}
-	// trigger click does not work well with event delegation in m$hit
-	/*if(document.location.hash.length)
-		$('[href=' + document.location.hash + ']').trigger('click');*/
-
+	
 	// make this plugin chainable
 	return this; 
 

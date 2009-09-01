@@ -24,7 +24,7 @@ Karma.extend({
 	
 	each: function(o, fn){
 		for (var i = 0; i < o.length; i++) {
-			fn.call(o[i], i);
+			fn.call(o[i], i, o[i]);
 		}
 	},
 	
@@ -49,7 +49,7 @@ Karma.extend({
 		var ret = [];
 		// Go through the array, only saving the items that pass the validator function
 		for (var i = 0; i < o.length; i++)
-			if (fn.call(o[i], i) !== false)
+			if (fn.call(o[i], i, o[i]) !== false)
 				ret.push( o[i] );
 
 		return ret;
@@ -65,7 +65,7 @@ Karma.extend({
 	map: function(o, fn) {
 		var array = [];
 		for ( var i = 0; i < o.length; i++ ) 
-			array.push(fn.call(o[i], i));
+			array.push(fn.call(o[i], i, o[i]));
 
 		return array;
 	},
@@ -75,4 +75,3 @@ Karma.extend({
 		return Array.prototype.concat.apply([], arguments);
 	}
 });
-

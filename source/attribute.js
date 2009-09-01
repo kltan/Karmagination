@@ -60,29 +60,47 @@ Karma.fn.extend({
 	},
 	
 	addClass: function(str){
-		for(var i=0; i< this.length; i++)
-			this[i].className += ' ' + str; // browser will automatically remove duplicates and trim
+		var _str = ' ' + str + ' ';
+		
+		for(var i=0; i< this.length; i++) {
+			if (this[i].classList)
+				this[i].classList.add(str);
+			else {
+				if( (' ' + this[i].className + ' ').indexOf(_str) < 0) 
+					this[i].className.length ? this[i].className += ' ' + str : this[i].className = str;
+			}
+		}
 			
 		return this;
 	},
 	
 	removeClass: function(str) {
 		for(var i=0; i< this.length; i++)
-			this[i].className = this[i].className.replace(str, '');
+			this[i].classList ? this[i].classList.remove(str) : this[i].className = Karma.trim(this[i].className.replace(str, ''));
 
 		return this;
 	},
 	
 	hasClass: function(str) {
-		str = ' ' + str + ' ';
-		return (this.length) ? (' ' + this[0].className + ' ').indexOf(str) >= 0 : false;
+		var _str = ' ' + str + ' ',
+			ret = false;
+		
+		if(this.length)
+			ret = this[0].classList ? this[0].classList.contains(str) : (' ' + this[0].className + ' ').indexOf(_str) >= 0;
+		
+		return ret;
 	},
 	
 	toggleClass: function(str) {
-		str = ' ' + str + ' ';
+		var _str = ' ' + str + ' ';
 		for(var i=0; i< this.length; i++) {
-			var classname = ' ' + this[i].className + ' ';
-			this[i].className = classname.indexOf(str) >= 0 ? classname.replace(str, '') : classname += str;
+			if(this[i].classList)
+				this[i].classList.toggle(str);
+			else {
+				var classname = ' ' + this[i].className + ' ';
+				this[i].className = classname.indexOf(_str) >= 0 ? classname.replace(_str, '') : classname += _str;
+				this[i].className = Karma.trim(this[i].className);
+			}
 		}
 		return this;
 	},
@@ -105,8 +123,12 @@ Karma.fn.extend({
 		for(var i=0; i< this.length; i++) {
 			var name = this[i].getAttribute('name');
 			if (name && name.length) {
-				var value = this[i].getAttribute('value') || '';
-				ret += name + '=' + value + '&';
+				var value = this[i].value || '';
+				
+				if (this[i].nodeName.toLowerCase() == 'input' && this[i].getAttribute('type').toLowerCase() == 'checkbox' && !this[i].checked)
+					ret += encodeURIComponent(name) + '=&';
+				else
+					ret += encodeURIComponent(name) + '=' + encodeURIComponent(value) + '&';
 			}
 		}
 		return ret.length ? ret.substring(0, ret.length-1) : '';

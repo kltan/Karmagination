@@ -59,21 +59,19 @@ Karma.fn.extend({
 	
 	// removes all events attached including current node
 	empty: function() {
+		var isHTML = 'innerHTML' in document.documentElement;
 		for (var i=0; i< this.length; i++) {
-			// don't bitch about this, won't break future browser compatibility
-			/*if (Karma.isGecko) {
-				var parent = Karma.temp.fragment.cloneNode(false);
-				var newEl = this[i].cloneNode(false);
-				
-				parent.appendChild(newEl);
-				
-				this[i].parentNode.replaceChild(newEl, this[i]);
-				this[i] = newEl;
-			}
-			
-			else {*/
+			if (isHTML) {
+				// no garbage collection here, we do it on unload then
 				this[i].innerHTML = '';
-			//}
+			}
+			else {
+				while (this[i].firstChild) {
+					// garbage collection, it's not perfect but will reduce memory usage while balancing performance
+					if (this[i].firstChild.KarmaMap) Karma.storage[this[i].KarmaMap] = null;
+					this[i].removeChild(this[i].firstChild);
+				}
+			}
 		}
 		return this;
 	},
@@ -104,10 +102,12 @@ Karma.fn.extend({
 	},
 	
 	remove: function(query){
-		var result = Karma.isString(query) ? Karma.selector.filter(query, this) : this.length ? this : [];
+		var result = Karma.isString(query) ? Karma.Sizzle.filter(query, this) : this.length ? this : [];
 		
-		for (var i=0; i< result.length; i++)
+		for (var i=0; i< result.length; i++) {
+			if (result[i].KarmaMap) Karma.storage[result[i].KarmaMap] = null;
 			result[i].parentNode.removeChild(result[i]);
+		}
 		
 		return this;
 	},

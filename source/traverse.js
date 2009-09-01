@@ -18,7 +18,7 @@ Karma.fn.extend({
 	
 		};
 		
-		elements = (Karma.isString(query)) ? Karma.selector.filter(query, Karma.unique(elements)) : Karma.unique(elements);
+		elements = (Karma.isString(query)) ? Karma.Sizzle.filter(query, Karma.unique(elements)) : Karma.unique(elements);
 		return Karma(elements).stack(this);
 	},
 
@@ -52,7 +52,7 @@ Karma.fn.extend({
 			}
 		}
 		
-		siblings = (Karma.isString(query)) ? Karma.selector.filter(query, Karma.unique(siblings)) : Karma.unique(siblings);
+		siblings = (Karma.isString(query)) ? Karma.Sizzle.filter(query, Karma.unique(siblings)) : Karma.unique(siblings);
 		
 		return Karma(siblings).stack(this);
 	},
@@ -66,7 +66,7 @@ Karma.fn.extend({
 				parent.push($[i].parentNode);
 		}
 	
-		parent = (Karma.isString(query)) ? Karma.selector.filter(query, Karma.unique(parent)) : Karma.unique(parent);
+		parent = (Karma.isString(query)) ? Karma.Sizzle.filter(query, Karma.unique(parent)) : Karma.unique(parent);
 			
 		return Karma(parent).stack(this);
 	},
@@ -82,7 +82,7 @@ Karma.fn.extend({
 				parent = parent.parentNode || document;
 			}
 		}
-		ancestors = (Karma.isString(query)) ? Karma.selector.filter(query, Karma.unique(ancestors)) : Karma.unique(ancestorss);
+		ancestors = (Karma.isString(query)) ? Karma.Sizzle.filter(query, Karma.unique(ancestors)) : Karma.unique(ancestorss);
 
 		return Karma(ancestors).stack(this);
 	},
@@ -98,7 +98,7 @@ Karma.fn.extend({
 		}
 		
 		if (Karma.isString(query))
-			children = Karma.selector.filter(query, children);
+			children = Karma.Sizzle.filter(query, children);
 		
 		return Karma(children).stack(this);
 		
@@ -119,29 +119,64 @@ Karma.fn.extend({
 	},
 	
 	// get elements as array, return the array
-	get: function() {
-		return this.length ? Karma.makeArray(this) : [];
+	get: function(num) {
+		return Karma.isValue(num) && this.length?
+			Karma.makeArray(this) : 
+			this[ num ];
 	},
 	
 	// possibly need to make the result unique, will see how people use the find method
 	descendents: function(query) {
 		var ret = [];
 		for(var i=0; i<this.length; i++)
-			ret = Karma.merge(ret, Karma.selector(query, this[i]));
+			ret = Karma.merge(ret, Karma.Sizzle(query, this[i]));
 		
-		return Karma(ret).stack(this);
+		return Karma(Karma.unique(ret)).stack(this);
 	},
 	
 	filter: function(query) {
-		return query ? Karma(Karma.selector.filter(query, this)).stack(this) : this;
+		return query ? Karma(Karma.Sizzle.filter(query, this)).stack(this) : this;
 	},
 	
 	is: function(query) {
-		return query ? !!Karma.selector.filter(query, this).length : false;
+		return query ? !!Karma.Sizzle.filter(query, this).length : false;
 	},
 	
 	not: function(query) {
-		return query ? Karma(Karma.selector(':not('+query+')', this)).stack(this) : this;
+		return query ? Karma(Karma.Sizzle(':not('+query+')', this)).stack(this) : this;
+	},
+	
+	// adding elements
+	add: function(query) {
+		return query? Karma(this).populate(Karma(query), this.length).stack(this) : this;
+	},
+	
+		// adding self to chain
+	andSelf: function() {
+		return this.KarmaStack.length ? Karma(this).populate(this.KarmaStack[0], this.length).stack(this): this;
+	},
+	
+	each: function(fn){
+		for (var i=0; i< this.length; i++)
+			fn.call(this[i], i);
+		return this;
+	},
+	
+	map: function(fn) {
+		var ret = [];
+		for (var i=0; i< this.length; i++)
+			ret.push(fn.call(this[i], i));
+		return ret;
+	},
+	
+	grep: function(fn) {
+		var ret = [];
+		for (var i=0; i< this.length; i++) {
+			var result = fn.call(this[i], i);
+			if (result !== false)
+				ret.push(result);
+		}
+		return this;
 	}
 });
 

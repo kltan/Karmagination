@@ -1,8 +1,8 @@
 Karma.fn.extend({
 
-	bind: function(str, fn, isLive) {
+	bind: function(str, fn, livequery) {
 		if (!this.length || !Karma.isString(str) || !Karma.isFunction(fn)) return this;
-		
+	
 		str = str.split(/\s+/);
 		
 		// http://thinkweb2.com/projects/prototype/detecting-event-support-without-browser-sniffing/
@@ -14,7 +14,8 @@ Karma.fn.extend({
 			'error':'img',
 			'load':'img',
 			'abort':'img',
-			'unload': 'window'
+			'unload': 'window',
+			'resize': 'window'
 		}
 		
 		var isEventSupported = function(eventName) {
@@ -41,8 +42,18 @@ Karma.fn.extend({
 			return isSupported;
 		}
 
-		for(var j=0; j< str.length; j++) {
+		o:for(var j=0; j< str.length; j++) {
 			var ns = str[j].split('.');
+			if (Karma.event.special[ns[0]]) {
+				var args = [];
+				for(var i = 0; i < arguments.length; i++)
+					if(Karma.isFunction(arguments[i]))
+						args.push(arguments[i]);
+						
+				Karma.event.special[ns[0]].setup.apply(this, args);
+				continue o;
+			}
+			
 			for(var i=0; i< this.length; i++) {
 				if (!(this[i].nodeType == 3 || this[i].nodeType == 8)) {
 					var map = 0;
@@ -55,7 +66,19 @@ Karma.fn.extend({
 					
 					$[ns[0]] = $[ns[0]] || [];
 					
-					if(isLive) {}
+					if(livequery) {
+						var data = Karma.data(this.context, 'KarmaLive') || {};
+						data[ns[0]] = data[ns[0]] || {};
+						data[ns[0]][livequery] = data[ns[0]][livequery] || [];
+						
+						if(ns.length == 1)
+							data[ns[0]][livequery].push(fn);
+						
+						else if(ns.length == 2)
+							data[ns[0]][livequery][ns[1]] = fn;
+							
+						Karma.data(this.context, 'KarmaLive', data);
+					}
 					
 					else if (ns.length == 1)
 						$[ns[0]].push(fn);
@@ -64,7 +87,7 @@ Karma.fn.extend({
 						$[ns[0]][ns[1]] = fn;
 						
 					if(Karma.event.support[ns[0]] || (Karma.event.support[ns[0]] !== false && isEventSupported(ns[0]))) {
-						if(this[i]['on'+ns[0]] !== Karma.event.caller)
+						if(!Karma.isFunction(this[i]['on'+ns[0]]))
 							this[i]['on'+ns[0]] = Karma.event.caller;
 					}
 					// custom event
@@ -89,15 +112,33 @@ Karma.fn.extend({
 		return this;
 	},
 		
-	unbind: function(str, fn) {
+	unbind: function(str, fn, livequery) {
 		if (!str || !this.length) return this;
-		token = str.split(/\s+/);
+		var token = str.split(/\s+/);
+		
 		for(var j=0; j< token.length; j++) {
 			var ns = token[j].split('.');
 			for(var i=0; i< this.length; i++) {
+				var map = this === window ? 0 : this[i].KarmaMap;
+				var data = Karma.data(this[i], 'KarmaLive');
+				if (livequery) {
+					if(data && data[ns[0]] && data[ns[0]][livequery]) {
+						if (Karma.isFunction(fn)) {
+							for (var fn in data[ns[0]][livequery])
+								if (data[ns[0]][livequery][fn] == fn)
+									delete data[ns[0]][livequery][fn];
+						}
+						else if (ns.length > 1) {
+							delete data[ns[0]][livequery][ns[1]];
+						}
+						else if(ns.length == 1) {
+							delete data[ns[0]][livequery];
+						}
+					}
+				}
 
-				if (this[i].KarmaMap && Karma.storage[this[i].KarmaMap] && Karma.storage[this[i].KarmaMap].KarmaEvent) {
-					var $ = Karma.storage[this[i].KarmaMap].KarmaEvent;
+				else if (Karma.storage[map] && Karma.storage[map].KarmaEvent) {
+					var $ = Karma.storage[map].KarmaEvent;
 					if (Karma.isFunction(fn)) {
 						for (var prop in $[ns[0]])
 							if ($[ns[0]][prop] == fn)
@@ -128,7 +169,11 @@ Karma.fn.extend({
 		
 	},
 	
-	trigger: function(eventName) {
+	triggerHandler: function(eventName) {
+		this.trigger(eventName, true);
+	},
+	
+	trigger: function(eventName, prevent) {
 		try {
 			for(var i=0; i<this.length; i++)
 				var element = this[i];
@@ -145,11 +190,23 @@ Karma.fn.extend({
 				if(curEvent){
 					var event = document.createEvent(curEvent.type);
 					curEvent.init(event, {});
+					
+					if(prevent) {
+						event.stopPropagation();
+						event.preventDefault();
+					}
+					
 					element.dispatchEvent(event);
 				}
 				else {
 					var fakeEvent = document.createEvent("UIEvents");
 					fakeEvent.initEvent(eventName, false, false);
+					
+					if(prevent) {
+						fakeEvent.stopPropagation();
+						fakeEvent.preventDefault();
+					}
+					
 					element.dispatchEvent(fakeEvent);
 				}
 			}
@@ -159,20 +216,23 @@ Karma.fn.extend({
 					element = (element === document || element === window ) ? document.documentElement : element;
 				
 					var event = document.createEventObject();
+					if(prevent) {
+						event.cancelBubble = true;
+						event.returnValue = false;
+					}
 					
-					for(var property in properties)
-						event[property]=properties[property];
+					/*for(var property in properties)
+						event[property]=properties[property];*/
 		
 					element.fireEvent("on"+eventName, event);
 				}
 				else {
-					var current = $(element).data('fireEvent') || [];
+					var current = Karma(element).data('fireEvent') || [];
 					current.push(eventName);
 					
-					$(element).data('fireEvent', current);
+					Karma(element).data('fireEvent', current);
 					element.customEvents++;
 				}
-
 			}
 
 		} catch(e){};
@@ -180,28 +240,13 @@ Karma.fn.extend({
 		return this;
 	},
 	
-	// preventDefault and stopPropagation is not complete for live yet
-	// need help on this, if you want to help just ping @karmagination at twitter
+	// preventDefault and stopPropagation might not be 100% complete for live yet
 	live: function(str, fn){
-		var context = this.context.document || this.context || document;
-		for(var i = 0; i < this.length; i++) {
-			var data = Karma.data(this.context, 'KarmaLive') || {};
-			data[str] = data[str] || {};
-			data[str][this.query] = fn;
-			Karma.data(this.context, 'KarmaLive', data);
-		}
-		Karma(this.context).bind(str, function(){}, 1);
-
-		return this;
+		return Karma(this.context).bind(str, fn, this.query);
 	},
 	
 	die: function(str, fn) {
-		for(var i = 0; i < this.length; i++) {
-			var data = Karma.data(this.context, 'KarmaLive');
-			if (data && data[str])
-				data[str] = null;
-		}
-		return this;
+		return Karma(this.context).unbind(str, fn, this.query);
 	}
 
 });
@@ -351,10 +396,30 @@ Karma.event = {
 }
 
 else Karma.event = {};
+
 Karma.event.support = {};
+Karma.event.special = {
+	hover: {
+		setup: function(){
+			var args = arguments;
+			this.bind('mouseover', function(e){ 
+				e.stopPropagation();
+				return args[0].call(this, e); 
+			}).bind('mouseout', function(e){ 
+				e.stopPropagation();
+				return args[1].call(this, e); 
+			});
+		},
+		teardown: function(){
+			this.unbind('mouseover').unbind('mouseout');
+		}
+	}
+}
 
 // caller the determines how events are fired, also normalizes events
+// hardest freakin bitch function to code in Karmagination
 Karma.event.caller = function(e) {
+	var cur_map = this === window ? 0 : this.KarmaMap;
 	e = window.event || e;
 	
 	// some basic normalization of event
@@ -366,46 +431,47 @@ Karma.event.caller = function(e) {
 		
 	if(!e.target && e.srcElement)
 		e.target = e.srcElement || document;
-		
-	if(e.type == 'mouseover' && !e.relatedTarget)
-         e.relatedTarget = e.fromElement;
-
-	else if(e.type == 'mouseout' && !e.relatedTarget)
-		e.relatedTarget = e.toElement;
-		
-	if(e.wheelDelta) {
-		e.wheelDiff = e.wheelDelta/120;
-		if(Karma.isOpera)
-			e.wheelDiff = -e.wheelDiff;
-	}
-	else if (e.detail)
-		e.wheelDiff = -e.detail/3;
-		
-	// fix for safari textnode
+	
 	try {
+		if(e.type == 'mouseover' && !('relatedTarget' in e))
+			 e.relatedTarget = e.fromElement;
+	
+		else if(e.type == 'mouseout' && !('relatedTarget' in e))
+			e.relatedTarget = e.toElement;
+			
+		if(e.wheelDelta) {
+			e.wheelDiff = e.wheelDelta/120;
+			if(Karma.isOpera)
+				e.wheelDiff = -e.wheelDiff;
+		}
+		else if (e.detail)
+			e.wheelDiff = -e.detail/3;
+			
+		// fix for safari textnode
 		if (e.target.nodeType == 3)
 			e.target = e.target.parentNode;
-	} catch(e){}
+
+		// Calculate pageX/Y if missing and clientX/Y available
+		if ( e.pageX == null && e.clientX != null ) {
+			var doc = document.documentElement, body = document.body;
+			e.pageX = e.clientX + (doc && doc.scrollLeft || body && body.scrollLeft || 0) - (doc.clientLeft || 0);
+			e.pageY = e.clientY + (doc && doc.scrollTop || body && body.scrollTop || 0) - (doc.clientTop || 0);
+		}
 	
-	// Calculate pageX/Y if missing and clientX/Y available
-	if ( e.pageX == null && e.clientX != null ) {
-		var doc = document.documentElement, body = document.body;
-		e.pageX = e.clientX + (doc && doc.scrollLeft || body && body.scrollLeft || 0) - (doc.clientLeft || 0);
-		e.pageY = e.clientY + (doc && doc.scrollTop || body && body.scrollTop || 0) - (doc.clientTop || 0);
-	}
-
-	// Add which for key events
-	if ( !e.which && ((e.charCode || e.charCode === 0) ? e.charCode : e.keyCode) )
-		e.which = e.charCode || e.keyCode;
-
-	// Add metaKey to non-Mac browsers (use ctrl for PC's and Meta for Macs)
-	if ( !e.metaKey && e.ctrlKey )
-		e.metaKey = e.ctrlKey;
-
-	// Add which for click: 1 == left; 2 == middle; 3 == right
-	// Note: button is not normalized, so don't use it
-	if ( !e.which && e.button )
-		e.which = (e.button & 1 ? 1 : ( e.button & 2 ? 3 : ( e.button & 4 ? 2 : 0 ) ));
+		// Add which for key events
+		if ( !e.which && ((e.charCode || e.charCode === 0) ? e.charCode : e.keyCode) )
+			e.which = e.charCode || e.keyCode;
+	
+		// Add metaKey to non-Mac browsers (use ctrl for PC's and Meta for Macs)
+		if ( !e.metaKey && e.ctrlKey )
+			e.metaKey = e.ctrlKey;
+	
+		// Add which for click: 1 == left; 2 == middle; 3 == right
+		// Note: button is not normalized, so don't use it
+		if ( !e.which && e.button )
+			e.which = (e.button & 1 ? 1 : ( e.button & 2 ? 3 : ( e.button & 4 ? 2 : 0 ) ));
+		
+	} catch(e){}
 	
 	var live = Karma.data(this.ownerDocument || document, 'KarmaLive');
 	if (live && live[e.type]) {
@@ -422,7 +488,7 @@ Karma.event.caller = function(e) {
 
 		// see which live query is more specific to the e.target
 		for(var query in live[e.type]) {
-			var result = Sizzle.filter(query, ancestors);
+			var result = Karma.Sizzle.filter(query, ancestors);
 			if (result.length) {
 				for(var i = 0; i < ancestors.length; i++) {
 					if (ancestors[i] === result[0]) {
@@ -433,25 +499,29 @@ Karma.event.caller = function(e) {
 			}
 		}
 		
-		// stop event done right, WOOT
+		// stop event done 99% right, WOOT
 		for(var i=0; i < passed.length; i++) {
-			if (passed[i] && live[e.type][passed[i]])
-				if(live[e.type][passed[i]].call(node[i], e) === false) {
-					e.stopPropagation();
-					e.preventDefault(); 
-					break;
+			if (passed[i] && live[e.type][passed[i]]) {
+				var stopped = 0;
+				for(var stacked in live[e.type][passed[i]]) {
+					if(live[e.type][passed[i]][stacked].call(node[i], e) === false) {
+						e.preventDefault();
+						e.stopPropagation();
+						stopped++;
+					}
 				}
+				if (stopped) break;
+			}
 		}
 	}
-
-
 		
 	if(e.propertyName == "customEvents") {
 		var events = $(this).data('fireEvent');
+		
 		for(var index in events) {
 			try {
-				for(var functions in Karma.storage[this.KarmaMap].KarmaEvent[events[index]]) {
-					if(Karma.storage[this.KarmaMap].KarmaEvent[events[index]][functions].call(this, e) === false) {
+				for(var functions in Karma.storage[cur_map].KarmaEvent[events[index]]) {
+					if(Karma.storage[cur_map].KarmaEvent[events[index]][functions].call(this, e) === false) {
 						e.stopPropagation();
 						e.preventDefault();	
 					}	
@@ -463,9 +533,9 @@ Karma.event.caller = function(e) {
 		$(this).data('fireEvent', events);
 	}
 	
-	else if(this.KarmaMap && Karma.storage[this.KarmaMap].KarmaEvent && Karma.storage[this.KarmaMap].KarmaEvent[e.type]) {
-		for(var functions in Karma.storage[this.KarmaMap].KarmaEvent[e.type]) {
-			if(Karma.storage[this.KarmaMap].KarmaEvent[e.type][functions].call(this, e) === false) {
+	else if(Karma.storage[cur_map] && Karma.storage[cur_map].KarmaEvent && Karma.storage[cur_map].KarmaEvent[e.type]) {
+		for(var functions in Karma.storage[cur_map].KarmaEvent[e.type]) {
+			if(Karma.storage[cur_map].KarmaEvent[e.type][functions].call(this, e) === false) {
 				e.stopPropagation();
 				e.preventDefault();	
 			}
@@ -473,8 +543,10 @@ Karma.event.caller = function(e) {
 			var once = Karma(this).data('triggerOnce');
 			if(once) {
 				for (var i = 0; i < once.length; i++) {
-					if(once[i] === Karma.storage[this.KarmaMap].KarmaEvent[e.type][functions]);
-					delete Karma.storage[this.KarmaMap].KarmaEvent[e.type][functions];
+					if(once[i] === Karma.storage[cur_map].KarmaEvent[e.type][functions]) {
+						Karma.storage[cur_map].KarmaEvent[e.type][functions] = null;
+						delete Karma.storage[cur_map].KarmaEvent[e.type][functions];
+					}
 				}
 			}
 			
@@ -482,9 +554,3 @@ Karma.event.caller = function(e) {
 	}
 }
 
-// cleaning up the mess
-Karma(function(){
-	Karma(window).bind('unload', function(){
-		Karma.event.caller = null;
-	});
-});

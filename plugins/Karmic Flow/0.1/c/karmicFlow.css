@@ -63,3 +63,30 @@ ul.karmic_flow_slider li {
 	line-height: 25px;
 	text-decoration: none;
 }
+
+.karmic_flow_prev_controller,
+.karmic_flow_next_controller,
+.karmic_flow_play_controller, 
+.karmic_flow_pause_controller
+{
+display: block;
+float: left;
+line-height: 10em;
+background: url(../i/layout/Knob%20Fast%20Rewind.png);
+width: 32px;
+height: 32px;
+overflow:hidden;
+}
+
+.karmic_flow_next_controller {
+background: url(../i/layout/Knob%20Fast%20Forward.png);
+}
+
+.karmic_flow_play_controller {
+background: url(../i/layout/Knob%20Play.png);
+
+}
+
+.karmic_flow_pause_controller {
+background:url(../i/layout/Knob%20Pause.png) !important;
+}

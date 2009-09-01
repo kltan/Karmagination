@@ -1,0 +1,91 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="c/karmicFlow.css" />
+<script language="javascript" type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1/jquery.min.js"></script>
+<script type="text/javascript" src="j/karmic-flow-0.1.js"></script>
+<script language="javascript">
+$(function(){
+	//console.profile('Karma');
+	var start = new Date().getTime();
+	$(document.getElementById('container')).karmicFlow({ auto: true });
+	$(document.getElementById('container2')).add(document.getElementById('container3')).karmicFlow();
+	
+	$('<p>Total rendering time = ' + (new Date().getTime() - start) + ' ms</p>').appendTo(document.body);
+	
+	//console.profileEnd('Karma');
+});
+</script>
+<title>Karmic Flow 0.1 - Demo</title>
+</head>
+<body>
+
+<h1>Image Slideshow</h1>
+
+<a class="karmic_flow_controller karmic_flow_controller_selected" href="#slide1" target="container">叶上水</a>
+<a class="karmic_flow_controller" href="#slide2" target="container">沙与石</a>
+<a class="karmic_flow_controller" href="#slide3" target="container">迷雾滩</a>
+<a class="karmic_flow_controller" href="#slide4" target="container">豹爽</a>
+
+<a class="karmic_flow_prev_controller" href="#" target="container">Prev</a>
+<a class="karmic_flow_next_controller" href="#" target="container">Next</a>
+<a class="karmic_flow_play_controller" href="#" target="container">Play/Pause</a>
+
+<div id="container" class="karmic_flow_container">
+    <ul class="karmic_flow_slider">
+        <li class="karmic_flow_slides karmic_flow_slide_selected" name="slide1"><img src="i/p1.jpg" /></li>
+        <li class="karmic_flow_slides" name="slide2"><img src="i/p2.jpg" /></li>
+        <li class="karmic_flow_slides" name="slide3"><img src="i/p3.jpg" /></li>
+        <li class="karmic_flow_slides" name="slide4"><img src="i/p4.jpg" /></li>
+    </ul>
+</div>
+
+<h1>Image Gallery</h1>
+
+<a class="karmic_flow_controller karmic_flow_controller_selected" href="#slide6" target="container2">Bamboo Leaves</a>
+<a class="karmic_flow_controller" href="#slide7" target="container2">Late Evening</a>
+<a class="karmic_flow_controller" href="#slide8" target="container2">Fireworks</a>
+<a class="karmic_flow_controller" href="#slide9" target="container2">The Universe</a>
+<a class="karmic_flow_prev_controller" href="#" target="container2">Prev</a>
+<a class="karmic_flow_next_controller" href="#" target="container2">Next</a>
+
+<div id="container2" class="karmic_flow_container">
+    <ul class="karmic_flow_slider">
+        <li class="karmic_flow_slides karmic_flow_slide_selected" name="slide6"><img src="i/p9.jpg" /></li>
+        <li class="karmic_flow_slides" name="slide7"><img src="i/p6.jpg" /></li>
+        <li class="karmic_flow_slides" name="slide8"><img src="i/p7.jpg" /></li>
+        <li class="karmic_flow_slides" name="slide9"><img src="i/p8.jpg" /></li>
+    </ul>
+</div>
+
+
+<h1>Mixed Contents</h1>
+
+<a class="karmic_flow_controller karmic_flow_controller_selected" href="#slide10" target="container3">Long Paragraphs</a>
+<a class="karmic_flow_controller" href="#slide11" target="container3">Late Evening</a>
+<a class="karmic_flow_controller" href="#slide12" target="container3">Fireworks</a>
+<a class="karmic_flow_prev_controller" href="#" target="container3">Prev</a>
+<a class="karmic_flow_next_controller" href="#" target="container3">Next</a>
+
+<div id="container3" class="karmic_flow_container">
+    <ul class="karmic_flow_slider">
+        <li class="karmic_flow_slides karmic_flow_slide_selected" name="slide10">
+            <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Pellentesque  venenatis, libero at ullamcorper pellentesque, nisl magna sodales elit,  laoreet elementum massa nisi ut ipsum. Aenean sagittis massa pretium  lectus tristique blandit. Phasellus ac lacus a lectus varius sodales eu  sit amet metus. Pellentesque a dolor nec felis fringilla ultricies.  Vivamus lacinia mattis orci, vel posuere magna auctor in. Sed laoreet  neque in metus vehicula egestas. Aenean vel magna id sem vulputate  dignissim blandit quis sem. Sed vulputate interdum faucibus. Fusce ut  molestie est. Aliquam in velit sed dolor ornare iaculis. Quisque cursus  accumsan volutpat. </p>
+            <p>Fusce in justo erat. Praesent volutpat neque non enim ultricies  fermentum. Vivamus et justo a erat aliquam malesuada nec venenatis  arcu. Nulla ac purus augue. Phasellus non purus quam, sit amet mollis  dolor. Proin vestibulum mattis lorem sed feugiat. Aliquam non magna  eros. Proin sodales, urna id ullamcorper pretium, velit mi mollis est,  in feugiat elit lectus at risus. Ut ultricies enim pretium ipsum  convallis a rhoncus erat semper. Cras a arcu neque. Nullam nunc tellus,  dapibus quis luctus eget, ullamcorper a metus. Nunc commodo eleifend  purus a tristique. In consectetur scelerisque risus, vel fringilla  nulla tristique et. Vivamus aliquet adipiscing arcu a aliquet.  Curabitur imperdiet lacus eget turpis placerat eleifend sodales mauris  cursus. Fusce facilisis mauris et quam consectetur pretium. Aliquam  erat volutpat. Phasellus pretium suscipit faucibus. Aliquam elementum  pulvinar enim vitae lacinia. Nulla malesuada tincidunt lorem, non  venenatis mi tincidunt ac. </p>
+            <p>Fusce dictum blandit neque, eu vulputate orci commodo sed. Praesent  a tortor non urna scelerisque aliquam quis vel ante. Etiam dui augue,  facilisis condimentum tempor vel, blandit a nisl. Suspendisse dignissim  dolor et tortor fringilla at elementum tortor tempus. Nullam sed quam  massa, vitae sollicitudin risus. Nulla facilisi. Aenean massa nibh,  feugiat eu pellentesque in, vehicula ac nisl. Ut non arcu justo.  Maecenas hendrerit lectus non justo porttitor lobortis. Praesent  lacinia quam vitae tortor aliquet at condimentum ante malesuada.  Praesent venenatis nunc lobortis odio ornare a tempus tortor iaculis.  Nullam nec tortor felis. Sed porttitor, tellus quis elementum  consequat, eros libero gravida odio, id malesuada dolor massa quis  diam. Mauris id hendrerit diam. Donec placerat gravida interdum. Nullam  ut dui justo, nec hendrerit orci. Pellentesque risus arcu, accumsan  vehicula posuere nec, porttitor at urna. </p>
+            <p>Cum sociis natoque penatibus et magnis dis parturient montes,  nascetur ridiculus mus. Suspendisse lobortis vestibulum orci a  consectetur. Suspendisse malesuada lorem in felis consectetur eget  tincidunt diam laoreet. Curabitur id est sapien. Maecenas molestie,  arcu nec gravida faucibus, arcu velit eleifend arcu, eu vehicula turpis  orci non dolor. Morbi feugiat dignissim laoreet. In tincidunt luctus  pulvinar. Nam diam turpis, adipiscing iaculis facilisis at, varius ac  nulla. Proin auctor imperdiet eros, sagittis adipiscing metus porta  sed. Sed aliquam, elit blandit mollis blandit, massa orci rutrum justo,  ut viverra sem elit vel turpis. Nulla purus elit, varius id mattis  quis, ullamcorper id arcu. Mauris ornare commodo justo, id placerat  quam porttitor non. Cras nunc nulla, malesuada at ultrices nec,  pellentesque nec nisl. Etiam vitae metus at ante varius eleifend. Duis  quis ultricies risus. Nam tempus laoreet pulvinar. Etiam iaculis risus  in sapien elementum feugiat. </p>
+            <p>Nam commodo, ligula non molestie ullamcorper, mauris nibh sagittis  nunc, sit amet posuere sem magna ac lorem. Curabitur felis magna,  imperdiet rhoncus fringilla non, varius vitae tellus. Quisque ut lacus  justo, et suscipit eros. Phasellus odio quam, faucibus at convallis  eget, tempus ut nunc. Phasellus id sagittis magna. Nullam elit dui,  mollis ac suscipit ac, auctor in mi. Mauris sapien odio, adipiscing vel  interdum eget, luctus a dolor. In malesuada nisi sit amet quam mattis  non aliquet sapien pellentesque. Nulla rhoncus scelerisque dictum. Cras  eget massa id elit egestas condimentum quis non est. Aenean viverra  aliquam libero, id mollis sem posuere non. Cum sociis natoque penatibus  et magnis dis parturient montes, nascetur ridiculus mus. Nunc  condimentum viverra sagittis. Donec nec nulla ligula. Sed eget dolor  non turpis ullamcorper pretium. Vestibulum dui augue, molestie sit amet  rhoncus iaculis, lacinia lobortis nisl. Quisque aliquet interdum purus,  ut malesuada dolor ornare id. </p>
+        
+        </li>
+        <li class="karmic_flow_slides" name="slide11"><img src="i/p6.jpg" /></li>
+        <li class="karmic_flow_slides" name="slide12"><img src="i/p7.jpg" /></li>
+
+    </ul>
+</div>
+
+
+
+
+</body>
+</html>

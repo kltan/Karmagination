@@ -14,6 +14,8 @@ Karma.fn.extend({
 
 	setStyle: function(property, value){
 		if(!this.length) return this;
+		
+		property = Karma.camelCase(property);		
 
 		if (property == 'opacity') {
 			for (var i=0; i < this.length; i++) {
@@ -47,7 +49,9 @@ Karma.fn.extend({
 			property = Karma.support.styleFloat ? 'styleFloat' : 'cssFloat';
 		
 		// concat integers/integer-like strings with px;
-		if (parseInt(value, 10)) value += 'px';
+		var curval = +value;
+		if ( curval || curval === 0 ) value = curval + 'px';
+		
 		
 		if(Karma.isString(value)) // just to be safe
 		for (var i=0; i < this.length; i++)
@@ -59,8 +63,10 @@ Karma.fn.extend({
 	getStyle: function(property) {
 		if(!this.length) return null;
 		
+		property = Karma.camelCase(property);
+		
 		if (property == 'scrollTop' || property == 'scrollLeft')
-			return (this[0]===document || this[0]===document.body || this[0]===window)? document.documentElement[property]: this[0][property];
+			return (this[0]===document || this[0]===document.documentElement || this[0]===window)? document.body[property]: this[0][property];
 		
 		if (property == 'float')
 			property = Karma.support.styleFloat ? 'styleFloat' : 'cssFloat';
@@ -75,7 +81,7 @@ Karma.fn.extend({
 			return opacity/100;
 		}
 		
-		// check if the current node is stylable or not, window cannot be styled
+		// check if the current node is stylable or not, i.e. window cannot be styled
 		if(this[0].style) {
 			if (this[0].currentStyle) {
 				if (this[0].currentStyle[property] == 'auto' && this[0].style[property] == '') {
@@ -104,7 +110,7 @@ Karma.fn.extend({
 	dimension: function(name, border){
 		if(!this.length) return null;
 		return this[0] === window ?
-			// Everyone else use document.documentElement or document.body depending on Quirks vs Standards mode
+			// use document.documentElement or document.body depending on Quirks vs Standards mode
 			document.compatMode == "CSS1Compat" && document.documentElement[ "client" + name ] || document.body[ "client" + name ] :
 			// Get document width or height
 			this[0] === document ?
@@ -120,8 +126,8 @@ Karma.fn.extend({
 	},
 	
 	width: function(val){
-		var paddingLeft = parseInt(this.getStyle('paddingLeft'), 10),
-			paddingRight = parseInt(this.getStyle('paddingRight'), 10);
+		var paddingLeft = parseInt(this.getStyle('paddingLeft'), 10) || 0,
+			paddingRight = parseInt(this.getStyle('paddingRight'), 10) || 0;
 		return Karma.isValue(val) ? this.setStyle('width', val) : this.dimension('Width') - paddingLeft - paddingRight;
 	},
 	
@@ -274,6 +280,17 @@ Karma.fn.extend({
 Karma.fn.css = Karma.fn.style;
 
 Karma.extend({
+	camelCase: function(property) {
+		if (Karma.temp.camelCase[property]) {
+			property = Karma.temp.camelCase[property];
+		}
+		else {
+			property = Karma.temp.camelCase[property] = property.replace(/\-(\w)/g, function(all, letter){ return letter.toUpperCase(); });
+		}
+		
+		return property;
+	},
+	
 	rgbToHex: function(array){
 		if (array.length < 3) return null;
 		if (array.length == 4 && array[3] == 0 && !array) return 'transparent';

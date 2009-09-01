@@ -1,5 +1,11 @@
 Karma.fn.extend({
 	stop: function(){
+		for(var i = 0; i < this.length; i++) {
+			var KarmaFX = Karma.data(this[i], 'KarmaFX');
+			for(var iter in KarmaFX)
+				clearInterval(KarmaFX[iter].timer);
+		}
+		
 		return this.data('KarmaFX', null);
 	},
 	
@@ -12,7 +18,7 @@ Karma.fn.extend({
 		var els = this;
 		
 		// default values
-		duration = duration || 300;
+		duration = duration || 500;
 		easing = easing || Karma.easing.global;
 		callback = callback || null;
 		step = step || null;
@@ -71,7 +77,7 @@ Karma.temp.populateStartEndValues = function($curEl, FX, attributes) {
 					temp_val = +cur_val;
 				
 				// number looks like strings, means all digits /\d/ or has a unit of pixel
-				if (temp_val || val.indexOf('px') > 0)
+				if (temp_val || temp_val === 0 || val.indexOf('px') > 0)
 					cur_val = temp_val || parseInt(cur_val, 10);
 				
 				// other units, opacity, will not hit this so no problem to parseInt
@@ -108,7 +114,7 @@ Karma.temp.animate = function($cur) {
 			endTimer = startTimer + (KarmaFX[iter].duration || 0),
 			timer;
 			
-		timer = setInterval(function(){
+		KarmaFX[iter].timer = timer = setInterval(function FX_first(){
 			var curTime = new Date().getTime();
 			
 			if (!KarmaFX)
@@ -147,12 +153,14 @@ Karma.temp.animate = function($cur) {
 			
 				$cur.css(KarmaFX[iter].end);
 			}
-
+			
+			KarmaFX[iter] = null;
 			iter++;
 			
 			// if there's no next item, do a clean up
-			if(KarmaFX && !KarmaFX[iter])
-				KarmaFX = null;
+			if(KarmaFX.length && !KarmaFX[iter]) {
+				$cur.data('KarmaFX', null);
+			}
 			
 			// start the next animation queue in stack
 			else {
@@ -162,7 +170,7 @@ Karma.temp.animate = function($cur) {
 				for (var prop in KarmaFX[iter].end)
 					Karma.temp.populateStartEndValues($cur, KarmaFX[iter], KarmaFX[iter].attributes);
 
-				timer = setInterval(function(){
+				KarmaFX[iter].timer = timer = setInterval(function FX_next(){
 					var curTime = new Date().getTime();
 					
 					if(!KarmaFX)
@@ -183,9 +191,9 @@ Karma.temp.animate = function($cur) {
 }
 
 Karma.easing = {
-	linear: function (t, b, c, d) {
-    	return c*t/d + b;
+	easeIn: function (t, b, c, d) {
+    	return c*(t/=d)*t + b;
     }
 };
 
-Karma.easing.global = Karma.easing.linear;
+Karma.easing.global = Karma.easing.easeIn;

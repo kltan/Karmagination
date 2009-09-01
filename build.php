@@ -75,19 +75,36 @@ $(function(){
 
 	$('div').animate({
 		width: '500px'
-	});
+	}, 1000);
 	
 	$('a').live('click', function(e){
 		alert(this.innerHTML);
 		return false;
 	});
 	
-	$('input').live('focus', function(e) { 
-		alert('focused');
+	$('a').live('click', function(e){
+		alert('This is the second');
+		return false;
+	});
+	
+	$('body').live('click', function(e){
+		alert('This can\'t fire when anchor return false');
+	});
+	
+	$('a').bind('click', function(e){
+		alert('This is native anchor bind');
+		return false;
+	});
+	
+	$('body').bind('click', function(e){
+		alert('This is native body bind');
+		return false;
 	});
 	
 	if(window.console && console.profile)
 		console.profileEnd('Benchmark');
+		$('div').hover(function(){ this.style.backgroundColor ='#000' }, function(){ this.style.backgroundColor ='white' });
+		$(document.body).click(function(){alert('hi2');});
 });
 
 </script>

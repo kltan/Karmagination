@@ -18,7 +18,7 @@
  */
  
 //start scope protection
-(function(){ 
+(function karma_anonymous(){ 
 		   
 // speeding up reference in non-JIT bytecode
 var window = this,
@@ -29,7 +29,9 @@ var window = this,
 // Constructor Function
 var Karma = this.$ = this.Karma = function( query, context ) {
 	// note: if Karma has not been instatiated, this === global object, interpreted by most browsers as window
-	if (!(this instanceof Karma)) return new Karma( query, context );
+	// I did not use instance of because window instanceof leaks memory in IE, what a shame
+	//if (!(this instanceof Karma)) return new Karma( query, context );
+	if (this.constructor !== Karma) return new Karma( query, context );
 	
 	query = query || document;
 	this.context = context = context || document;
@@ -50,24 +52,23 @@ var Karma = this.$ = this.Karma = function( query, context ) {
 	
 	// string is most used query
 	else if(typeof query == "string") {
+		this.query = query = Karma.trim(query);
 		if(!query.length) {
 			this[0] = document;
 			this.length = 1;
 			this.query = query;
 			return; // do not return 'this' because it's a constructor, return just to break from function
 		}
-		var _oquery = query;
-		query = Karma.trim(query);
-		this.query = query;
-		context = context.ownerDocument || context;
+
+		var context = this.context.ownerDocument || this.context;
 		
 		// if HTML string passed
-		result = Karma.isHTML(query) ? Karma.HTMLtoNode(query, context) : Karma.selector(query, context);
+		result = Karma.isHTML(query) ? Karma.HTMLtoNode(query, context) : Karma.Sizzle(query, context);
 	}
 	
 	// onDOMready
 	else if (typeof query == "function") {
-		(!Karma.isReady) ? Karma.ready_queue(function(){ query(Karma);}) :	query(Karma);
+		(!Karma.isReady) ? Karma.readyQueue(function readyQueue(){ query(Karma);}) :	query(Karma);
 		return;
 	}
 
@@ -83,7 +84,7 @@ var Karma = this.$ = this.Karma = function( query, context ) {
 
 Karma.fn = Karma.prototype;
 
-// for extend, use no Karma syntax (pure js) cause they will fail
+// for extend, use no Karmagination syntax (pure js) cause they will fail
 Karma.extend = Karma.fn.extend = function() {
 	// copy reference to target object
 	var target = arguments[0] || {}, i = 1, length = arguments.length, deep = false, options;
@@ -140,7 +141,6 @@ Karma.fn.extend({
 		// make a clean array
 		this.length = n;
 		
-		// if(!Karma.isArray(elements)) not needed as makeArray use early detection of Array to skip, saved some bytes
 		elements = Karma.makeArray(elements);
 
 		// exit if no elements found
@@ -200,7 +200,7 @@ Karma.extend({
 		if(!subquery.indexOf('<tr')) {
 			query = '<table>' + query + '</table>';
 			tmp.innerHTML=query;
-			tmp = tmp.firstChild;
+			tmp = tmp.firstChild.firstChild;
 		}
 		// td or th
 		else if(!subquery.indexOf("<td") || !subquery.indexOf("<th")) {
@@ -232,7 +232,7 @@ Karma.extend({
 		else if(!subquery.indexOf("<col")) {
 			query = '<table><colgroup>' + query + '</colgroup></table>';
 			tmp.innerHTML=query;
-			tmp = tmp.firstChild.firstChild;
+			tmp = tmp.firstChild.firstChild.firstChild;
 		}
 		// script and link
 		else if (!subquery.indexOf("<script") || !subquery.indexOf("<link") ) {
@@ -250,7 +250,6 @@ Karma.extend({
 	},
 	 
 	// type detection, Miller method for those special cases otherwise typeof is faster, 
-	// undefined munging is slower in all modern browser, use is not recommended
 	isArray: function(o){ return Object.prototype.toString.call(o) == "[object Array]" },
 	isObject: function(o){ return Object.prototype.toString.call(o) == "[object Object]" },
 	isDate: function(o){ return Object.prototype.toString.call(o) == "[object Date]" },
@@ -260,11 +259,12 @@ Karma.extend({
 	isNumber: function(o){ return typeof o == "number" },
 	isValue: function(o){ return typeof o == "number" || typeof o == "string" },
 	isBoolean: function(o){ return typeof o == "boolean" },
+	// undefined munging is slower in all modern browser, use is not recommended
 	isDefined: function(o) { return typeof o != "undefined" },
-	
+	// isXML: function(o) { return 'innerHTML' in (o || o.ownerDocument).documentElement },
 	// unreliable detection, using documentation to prevent mistake instead
-	isHTML: function(o) { return o.substring ? /^<.+/.test(o.substring(0,3)) : false; },
-	isKarma: function(o) { return o instanceof Karma },
+	isHTML: function(o) { return Karma.isString(o) ? /^<.+/.test(o.substring(0,3)) : false; },
+	isKarma: function(o) { return o.constructor === Karma },
 
 	
 	// browser detection, TAKEN FROM MOOTOOLS with modifications, if you are new to JS, !! mean cast as boolean type
@@ -272,12 +272,12 @@ Karma.extend({
 	// old method !!(window.ActiveXObject && !window.opera) 
 	// new method !window.addEventListener, we used that for feature detection but it turns out to be an IE detector too
 	isIE: !!(!window.addEventListener && window.ActiveXObject),
-	isIE6: !!(typeof document.createElement('DIV').style.maxHeight == "undefined"),
+	isIE6: typeof document.createElement('DIV').style.maxHeight == "undefined",
 	isIE7: !!(!window.addEventListener && window.XMLHttpRequest && !document.querySelectorAll),
 	isIE8: !!(!window.addEventListener && document.querySelectorAll),
-	isGecko: !(typeof document.getBoxObjectFor == "undefined"),
+	isGecko: navigator.product == 'Gecko',
 	isOpera: !!window.opera,
-	isWebkit: !!(!window.opera && !navigator.taintEnable && document.evaluate && typeof document.getBoxObjectFor == "undefined"),
+	isWebkit: !!(!window.opera && !navigator.taintEnable && document.evaluate && navigator.product != 'Gecko'),
 	
 	// trim front/ending whitespaces and newlines so innerHTML won't go crazy
 	cleanHTML: function(HTML){ return HTML.replace ? HTML.replace(/[\n\r]/g, ' ') : HTML; },
@@ -319,7 +319,7 @@ Karma.extend({
 		var ret = [];
 		o:for(var i = 0, n = array.length; i < n; i++) {
 			for(var x = i + 1 ; x < n; x++) {
-				if(array[x] === array[i]) // prevent window == document for DOM comparison
+				if(array[x] === array[i])
 					continue o; 
 			}
 			ret.push(array[i]);
@@ -334,7 +334,7 @@ Karma.extend({
 	isReady: false, 
 	
 	// add functions to Karma.fns
-	ready_queue: function(fn){
+	readyQueue: function(fn){
 		if(Karma.isFunction(fn))
 			Karma.readyFunctions.push(fn);
 	},
@@ -369,14 +369,20 @@ Karma.extend({
 	}
 });
 
+// added this for jQuery compatibility
+Karma.browser = {
+	safari: Karma.isWebkit,
+	opera: Karma.isOpera,
+	mozilla: Karma.isGecko,
+	msie: Karma.isIE
+}
 // some simulations below to feature test the capabilities of the current browser
 // also populates known attribute names that are problematic
 // values are stored for future use
-
 Karma.temp = {
 	div: document.createElement('DIV'),
 	fragment: document.createDocumentFragment(),
-	
+	camelCase: {},
 	nodeListToArray: function(){
 		try { return Array.prototype.slice.call(document.forms, 0) instanceof Array; } catch (e) { return false; }
 	},
@@ -442,7 +448,6 @@ Karma.temp = {
 
 Karma.uniqueId = 0;
 Karma.storage = {};
-Karma.lastquery = {};
 
 // know the current browser's capabilities, we calculate here and use everywhere without recalculating
 // why isDefined is reliable here, REASON: we just created the ELEMENT and can be sure they are not polluted
@@ -464,13 +469,3 @@ Karma.support = {
 
 // run the function to wait for onDOMready
 Karma.ready();
-
-Karma(function(){
-	if (document.body) {
-		var div = document.createElement("div");
-		div.style.width = div.style.paddingLeft = "1px";
-		document.body.appendChild( div );
-		Karma.support.boxModel = div.offsetWidth == 2;
-		document.body.removeChild( div ).style.display = 'none';
-	}
-});

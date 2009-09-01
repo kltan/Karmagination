@@ -4,8 +4,8 @@
  * Released under the MIT, BSD, and GPL Licenses - Choose one that fit your needs
  * Copyright (c) 2009 Kean L. Tan 
  * Start date: 2009-04-01
- * Build Time: 2009-09-01 05:48:28 AM
- * Build: 2155
+ * Build Time: 2009-09-01 09:26:51 PM
+ * Build: 2165
  *
  * Attribution:
  * onDOMready based on many JS experts' input especially Dean Edwards, see the unminified source code for names
@@ -463,7 +463,8 @@ Karma.support = {
 	fireEvent : 'fireEvent' in Karma.temp.div,
 	createEvent: 'createEvent' in document,
 	createEventObject: 'createEventObject' in document,
-	nodeListToArray: Karma.temp.nodeListToArray()
+	nodeListToArray: Karma.temp.nodeListToArray(),
+	currentDocIsHTML: 'innerHTML' in document.documentElement
 };
 
 // run the function to wait for onDOMready
@@ -481,7 +482,7 @@ Karma.fn.extend({
 		var els = Karma(o);
 		if(!this.length || !els.length) return this;
 		
-		return Karma.temp.manipulate('append', this, els, this.query, true);
+		return Karma.temp.manipulate('append', this, els, this.query, 1);
 	},
 	
 	prepend: function(o) {
@@ -495,7 +496,7 @@ Karma.fn.extend({
 		var els = Karma(o);
 		if(!this.length || !els.length) return this;
 		
-		return Karma.temp.manipulate('prepend', this, els, this.query, true);
+		return Karma.temp.manipulate('prepend', this, els, this.query, 1);
 	},
 	
 	before: function(o) {
@@ -509,7 +510,7 @@ Karma.fn.extend({
 		var els = Karma(o);
 		if(!this.length || !els.length) return this;
 		
-		return Karma.temp.manipulate('before', this, els, this.query, true);
+		return Karma.temp.manipulate('before', this, els, this.query, 1);
 		
 	},
 	
@@ -524,17 +525,18 @@ Karma.fn.extend({
 		var els = Karma(o);
 		if(!this.length || !els.length) return this;
 
-		return Karma.temp.manipulate('after', this, els, this.query, true);
+		return Karma.temp.manipulate('after', this, els, this.query, 1);
 	},
 	
 	// removes all events attached including current node
 	empty: function() {
-		var isHTML = 'innerHTML' in document.documentElement;
 		for (var i=0; i< this.length; i++) {
-			if (isHTML) {
+			if (Karma.support.currentDocIsHTML) {
 				// no garbage collection here, we do it on unload then
+				// performance comes first vs pseudo leak
 				this[i].innerHTML = '';
 			}
+			// if is XML document
 			else {
 				while (this[i].firstChild) {
 					// garbage collection, it's not perfect but will reduce memory usage while balancing performance
@@ -595,11 +597,12 @@ Karma.fn.extend({
 				Karma.storage[$child[0].KarmaMap] = {};
 
 				// wow outerHTML will copy even elem.KarmaMap which screwed up my rebindings
-				if(events)
-				for (var ev in Karma.storage[this[i].KarmaMap].KarmaEvent) {
-					Karma.storage[$child[0].KarmaMap][ev] = [];
-					for (var fn in Karma.storage[this[i].KarmaMap].KarmaEvent[ev])
-						Karma.storage[$child[0].KarmaMap][ev][fn] = Karma.storage[this[i].KarmaMap].KarmaEvent[ev][fn];
+				if(events) {
+					for (var ev in Karma.storage[this[i].KarmaMap].KarmaEvent) {
+						Karma.storage[$child[0].KarmaMap][ev] = [];
+						for (var fn in Karma.storage[this[i].KarmaMap].KarmaEvent[ev])
+							Karma.storage[$child[0].KarmaMap][ev][fn] = Karma.storage[this[i].KarmaMap].KarmaEvent[ev][fn];
+					}
 				}
 			}
 			else {
@@ -645,11 +648,12 @@ Karma.extend(Karma.temp, {
 			var cloned = [];
 				
 			for (var i=0; i< parent.length; i++) {
-				var newClones = fragment.cloneNode(true);
+				var newClones = parent.length > 1 ? fragment.cloneNode(true) : fragment;
 				if (ret) {
 					 if(newClones.nodeType === 11) {
-          				for(var j=0; j < newClones.childNodes.length; j++)
-           					 cloned.push(newClones.childNodes[j]);
+						var children = Karma.makeArray(newClones.childNodes);
+          				for(var j=0; j < children.length; j++)
+           					 cloned.push(children[j]);
 					 }
        				 else
           				cloned.push(newClones);

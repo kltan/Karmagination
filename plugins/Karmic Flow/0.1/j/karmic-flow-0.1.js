@@ -6,7 +6,7 @@
  * Build date: 2009-07-20
 */
  
-(function($){$.fn.karmicFlow = function(opts){
+(function karmicFlow($){$.fn.karmicFlow = function(opts){
 	// default options
 	opts = $.extend({
 		container: 'karmic_flow_container',
@@ -68,8 +68,8 @@
 	for(var i=0; i < this.length; i++) {
 		$(this[i]).find('.'+ opts.slides).each(function(){
 			var $div = $('<div></div>');
-			$div.append(this.childNodes);
 			$div
+			 .append(this.childNodes)
 			 .appendTo(this)
 			 .addClass(opts.slide_overflow)
 			 .css('height', $(this).parent().parent().height());
@@ -149,7 +149,7 @@
 			// find the play button for current container
 			var $play_button = $('.'+opts.play).filter('[target=' + this[i].id + ']')
 			
-			// if not found, create one and hide it, we use fake play button to simulate a true button
+			// if not found, create one and hide it, we use fake play button to simulate a true button action
 			if(!$play_button.length)
 				$play_button = $('<a href="#" target="' + this[i].id + '" class="' + opts.next + '">&nbsp;</a>');
 			

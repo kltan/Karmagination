@@ -464,7 +464,8 @@ Karma.support = {
 	fireEvent : 'fireEvent' in Karma.temp.div,
 	createEvent: 'createEvent' in document,
 	createEventObject: 'createEventObject' in document,
-	nodeListToArray: Karma.temp.nodeListToArray()
+	nodeListToArray: Karma.temp.nodeListToArray(),
+	currentDocIsHTML: 'innerHTML' in document.documentElement
 };
 
 // run the function to wait for onDOMready

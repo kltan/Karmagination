@@ -11,7 +11,7 @@ Karma.fn.extend({
 		var els = Karma(o);
 		if(!this.length || !els.length) return this;
 		
-		return Karma.temp.manipulate('append', this, els, this.query, true);
+		return Karma.temp.manipulate('append', this, els, this.query, 1);
 	},
 	
 	prepend: function(o) {
@@ -25,7 +25,7 @@ Karma.fn.extend({
 		var els = Karma(o);
 		if(!this.length || !els.length) return this;
 		
-		return Karma.temp.manipulate('prepend', this, els, this.query, true);
+		return Karma.temp.manipulate('prepend', this, els, this.query, 1);
 	},
 	
 	before: function(o) {
@@ -39,7 +39,7 @@ Karma.fn.extend({
 		var els = Karma(o);
 		if(!this.length || !els.length) return this;
 		
-		return Karma.temp.manipulate('before', this, els, this.query, true);
+		return Karma.temp.manipulate('before', this, els, this.query, 1);
 		
 	},
 	
@@ -54,17 +54,18 @@ Karma.fn.extend({
 		var els = Karma(o);
 		if(!this.length || !els.length) return this;
 
-		return Karma.temp.manipulate('after', this, els, this.query, true);
+		return Karma.temp.manipulate('after', this, els, this.query, 1);
 	},
 	
 	// removes all events attached including current node
 	empty: function() {
-		var isHTML = 'innerHTML' in document.documentElement;
 		for (var i=0; i< this.length; i++) {
-			if (isHTML) {
+			if (Karma.support.currentDocIsHTML) {
 				// no garbage collection here, we do it on unload then
+				// performance comes first vs pseudo leak
 				this[i].innerHTML = '';
 			}
+			// if is XML document
 			else {
 				while (this[i].firstChild) {
 					// garbage collection, it's not perfect but will reduce memory usage while balancing performance
@@ -125,11 +126,12 @@ Karma.fn.extend({
 				Karma.storage[$child[0].KarmaMap] = {};
 
 				// wow outerHTML will copy even elem.KarmaMap which screwed up my rebindings
-				if(events)
-				for (var ev in Karma.storage[this[i].KarmaMap].KarmaEvent) {
-					Karma.storage[$child[0].KarmaMap][ev] = [];
-					for (var fn in Karma.storage[this[i].KarmaMap].KarmaEvent[ev])
-						Karma.storage[$child[0].KarmaMap][ev][fn] = Karma.storage[this[i].KarmaMap].KarmaEvent[ev][fn];
+				if(events) {
+					for (var ev in Karma.storage[this[i].KarmaMap].KarmaEvent) {
+						Karma.storage[$child[0].KarmaMap][ev] = [];
+						for (var fn in Karma.storage[this[i].KarmaMap].KarmaEvent[ev])
+							Karma.storage[$child[0].KarmaMap][ev][fn] = Karma.storage[this[i].KarmaMap].KarmaEvent[ev][fn];
+					}
 				}
 			}
 			else {
@@ -175,11 +177,12 @@ Karma.extend(Karma.temp, {
 			var cloned = [];
 				
 			for (var i=0; i< parent.length; i++) {
-				var newClones = fragment.cloneNode(true);
+				var newClones = parent.length > 1 ? fragment.cloneNode(true) : fragment;
 				if (ret) {
 					 if(newClones.nodeType === 11) {
-          				for(var j=0; j < newClones.childNodes.length; j++)
-           					 cloned.push(newClones.childNodes[j]);
+						var children = Karma.makeArray(newClones.childNodes);
+          				for(var j=0; j < children.length; j++)
+           					 cloned.push(children[j]);
 					 }
        				 else
           				cloned.push(newClones);
